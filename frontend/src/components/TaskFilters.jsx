@@ -3,7 +3,7 @@ import { filterTypes } from '../utils/filters';
 
 export function TaskFilters({ filters, onFilterChange, categories }) {
   return (
-    <div className="bg-white rounded-xl p-4 shadow-sm space-y-4">
+    <div className="card slide-down">
       {/* ステータスフィルター */}
       <div>
         <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
