@@ -37,6 +37,10 @@ const userSchema = new mongoose.Schema({
   lastLogin: {
     type: Date,
     default: Date.now
+  },
+  passwordChangedAt: {
+    type: Date,
+    select: false
   }
 }, {
   timestamps: true
@@ -51,6 +55,7 @@ userSchema.pre('save', async function(next) {
   try {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
+    this.passwordChangedAt = Date.now() - 1000; // 1秒前に設定
     next();
   } catch (error) {
     next(error);

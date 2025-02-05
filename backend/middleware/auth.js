@@ -1,4 +1,4 @@
-const { verifyToken } = require('../utils/jwt');
+const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 
 // 認証ミドルウェア
@@ -6,19 +6,16 @@ const protect = async (req, res, next) => {
   try {
     let token;
 
-    // トークンの取得（Authorization headerまたはcookie）
+    // トークンの取得方法を制限
     if (
       req.headers.authorization &&
       req.headers.authorization.startsWith('Bearer')
     ) {
-      // Bearer tokenから取得
       token = req.headers.authorization.split(' ')[1];
-    } else if (req.cookies.token) {
-      // Cookieから取得
+    } else if (req.cookies && req.cookies.token) {
       token = req.cookies.token;
     }
 
-    // トークンが存在しない場合
     if (!token) {
       return res.status(401).json({
         success: false,
@@ -27,19 +24,30 @@ const protect = async (req, res, next) => {
     }
 
     try {
-      // トークンの検証
-      const decoded = verifyToken(token);
-
-      // ユーザーの取得
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const user = await User.findById(decoded.id);
+
       if (!user) {
         return res.status(401).json({
           success: false,
-          message: 'ユーザーが見つかりません'
+          message: 'このトークンのユーザーは存在しません'
         });
       }
 
-      // リクエストオブジェクトにユーザー情報を追加
+      // パスワード変更後のトークンを無効化
+      if (user.passwordChangedAt) {
+        const changedTimestamp = parseInt(
+          user.passwordChangedAt.getTime() / 1000,
+          10
+        );
+        if (decoded.iat < changedTimestamp) {
+          return res.status(401).json({
+            success: false,
+            message: 'パスワードが変更されました。再度ログインしてください'
+          });
+        }
+      }
+
       req.user = user;
       next();
     } catch (error) {
@@ -49,10 +57,7 @@ const protect = async (req, res, next) => {
       });
     }
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: 'サーバーエラーが発生しました'
-    });
+    next(error);
   }
 };
 
