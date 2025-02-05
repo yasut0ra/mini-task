@@ -3,7 +3,7 @@
     "env": {
       "NPM_CONFIG_PRODUCTION": "false"
     },
-    "buildCommand": "cd frontend && npm install && npx vite build",
+    "buildCommand": "cd frontend && npm install --include=dev && npx vite build",
     "outputDirectory": "frontend/dist",
     "rewrites": [
       {
