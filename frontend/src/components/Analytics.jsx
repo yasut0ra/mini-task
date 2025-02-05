@@ -1,119 +1,188 @@
-import { PieChart, BarChart, Activity } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { 
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement
+} from 'chart.js';
+import { Bar, Doughnut } from 'react-chartjs-2';
+import { analyticsApi } from '../services/api';
+import { LoadingSpinner } from './ui/Loading';
+import { AlertTriangle, CheckCircle, Clock, ListTodo } from 'lucide-react';
 
-function Analytics({ tasks }) {
-  const totalTasks = tasks.length;
-  const completedTasks = tasks.filter(task => task.completed).length;
-  const incompleteTasks = totalTasks - completedTasks;
-  const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+// Chart.jsの設定
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement
+);
 
-  const tasksByPriority = tasks.reduce((acc, task) => {
-    acc[task.priority] = (acc[task.priority] || 0) + 1;
-    return acc;
-  }, {});
+export default function Analytics() {
+  const [stats, setStats] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const tasksByCategory = tasks.reduce((acc, task) => {
-    if (task.category) {
-      acc[task.category] = (acc[task.category] || 0) + 1;
-    }
-    return acc;
-  }, {});
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const data = await analyticsApi.fetchStats();
+        setStats(data);
+        setError(null);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const overdueTasks = tasks.filter(task => 
-    task.dueDate && !task.completed && new Date(task.dueDate) < new Date()
-  ).length;
+    fetchStats();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <LoadingSpinner className="w-8 h-8 text-indigo-600" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 text-red-600 p-4 rounded-xl">
+        {error}
+      </div>
+    );
+  }
+
+  // 概要カード
+  const OverviewCard = ({ icon: Icon, title, value, subValue, color }) => (
+    <div className="bg-white p-6 rounded-xl shadow-sm">
+      <div className="flex items-center gap-4">
+        <div className={`p-3 ${color} rounded-xl`}>
+          <Icon className="w-6 h-6 text-white" />
+        </div>
+        <div>
+          <h3 className="text-sm font-medium text-gray-500">{title}</h3>
+          <p className="text-2xl font-semibold text-gray-900">{value}</p>
+          {subValue && (
+            <p className="text-sm text-gray-500">{subValue}</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  // 優先度別のドーナツチャートデータ
+  const priorityChartData = {
+    labels: stats.byPriority.map(p => 
+      p._id === 'high' ? '高' : p._id === 'medium' ? '中' : '低'
+    ),
+    datasets: [{
+      data: stats.byPriority.map(p => p.count),
+      backgroundColor: [
+        'rgb(239, 68, 68)',
+        'rgb(234, 179, 8)',
+        'rgb(34, 197, 94)'
+      ]
+    }]
+  };
+
+  // カテゴリー別の棒グラフデータ
+  const categoryChartData = {
+    labels: stats.byCategory.map(c => c._id),
+    datasets: [
+      {
+        label: '完了',
+        data: stats.byCategory.map(c => c.completed),
+        backgroundColor: 'rgb(79, 70, 229)',
+      },
+      {
+        label: '未完了',
+        data: stats.byCategory.map(c => c.count - c.completed),
+        backgroundColor: 'rgb(209, 213, 219)',
+      }
+    ]
+  };
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-900">タスク分析</h2>
+      <h2 className="text-2xl font-bold text-gray-900">
+        タスク分析
+      </h2>
 
       {/* 概要カード */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium text-gray-500">総タスク数</h3>
-            <Activity className="w-5 h-5 text-indigo-500" />
-          </div>
-          <p className="text-3xl font-bold text-gray-900">{totalTasks}</p>
-        </div>
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium text-gray-500">完了率</h3>
-            <PieChart className="w-5 h-5 text-green-500" />
-          </div>
-          <p className="text-3xl font-bold text-gray-900">{completionRate.toFixed(1)}%</p>
-        </div>
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium text-gray-500">未完了</h3>
-            <BarChart className="w-5 h-5 text-yellow-500" />
-          </div>
-          <p className="text-3xl font-bold text-gray-900">{incompleteTasks}</p>
-        </div>
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium text-gray-500">期限超過</h3>
-            <Activity className="w-5 h-5 text-red-500" />
-          </div>
-          <p className="text-3xl font-bold text-gray-900">{overdueTasks}</p>
-        </div>
+        <OverviewCard
+          icon={ListTodo}
+          title="総タスク数"
+          value={stats.overview.total}
+          color="bg-indigo-600"
+        />
+        <OverviewCard
+          icon={CheckCircle}
+          title="完了率"
+          value={`${stats.overview.completionRate}%`}
+          subValue={`${stats.overview.completed}/${stats.overview.total} 完了`}
+          color="bg-green-600"
+        />
+        <OverviewCard
+          icon={AlertTriangle}
+          title="期限切れ"
+          value={stats.overview.overdue}
+          color="bg-red-600"
+        />
+        <OverviewCard
+          icon={Clock}
+          title="残りのタスク"
+          value={stats.overview.total - stats.overview.completed}
+          color="bg-yellow-600"
+        />
       </div>
 
-      {/* 詳細分析 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 優先度分布 */}
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">優先度別タスク数</h3>
-          <div className="space-y-4">
-            {Object.entries(tasksByPriority).map(([priority, count]) => (
-              <div key={priority} className="flex items-center gap-4">
-                <div className="w-24 text-sm font-medium text-gray-500">
-                  {priority === 'high' ? '高' : priority === 'medium' ? '中' : '低'}
-                </div>
-                <div className="flex-1 h-4 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full ${
-                      priority === 'high'
-                        ? 'bg-red-500'
-                        : priority === 'medium'
-                        ? 'bg-yellow-500'
-                        : 'bg-green-500'
-                    }`}
-                    style={{ width: `${(count / totalTasks) * 100}%` }}
-                  />
-                </div>
-                <div className="w-12 text-right text-sm font-medium text-gray-900">
-                  {count}
-                </div>
-              </div>
-            ))}
+      {/* チャート */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white p-6 rounded-xl shadow-sm">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            優先度別のタスク
+          </h3>
+          <div className="h-64">
+            <Doughnut
+              data={priorityChartData}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+              }}
+            />
           </div>
         </div>
 
-        {/* カテゴリー分布 */}
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">カテゴリー別タスク数</h3>
-          <div className="space-y-4">
-            {Object.entries(tasksByCategory).map(([category, count]) => (
-              <div key={category} className="flex items-center gap-4">
-                <div className="w-24 truncate text-sm font-medium text-gray-500">
-                  {category}
-                </div>
-                <div className="flex-1 h-4 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-indigo-500 rounded-full"
-                    style={{ width: `${(count / totalTasks) * 100}%` }}
-                  />
-                </div>
-                <div className="w-12 text-right text-sm font-medium text-gray-900">
-                  {count}
-                </div>
-              </div>
-            ))}
+        <div className="bg-white p-6 rounded-xl shadow-sm">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            カテゴリー別の進捗
+          </h3>
+          <div className="h-64">
+            <Bar
+              data={categoryChartData}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                  x: { stacked: true },
+                  y: { stacked: true }
+                }
+              }}
+            />
           </div>
         </div>
       </div>
     </div>
   );
-}
-
-export default Analytics; 
+} 

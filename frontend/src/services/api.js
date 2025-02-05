@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/tasks';
+const API_URL = 'http://localhost:5000';
 
 // Axios インスタンスの作成
 const api = axios.create({
@@ -22,7 +22,7 @@ export const taskApi = {
   // タスク一覧の取得
   async fetchTasks() {
     try {
-      const response = await api.get('/');
+      const response = await api.get('/tasks');
       return response.data;
     } catch (error) {
       handleError(error);
@@ -32,7 +32,7 @@ export const taskApi = {
   // タスクの追加
   async createTask(taskData) {
     try {
-      const response = await api.post('/', taskData);
+      const response = await api.post('/tasks', taskData);
       return response.data;
     } catch (error) {
       handleError(error);
@@ -42,7 +42,7 @@ export const taskApi = {
   // タスクの更新
   async updateTask(id, taskData) {
     try {
-      const response = await api.put(`/${id}`, taskData);
+      const response = await api.put(`/tasks/${id}`, taskData);
       return response.data;
     } catch (error) {
       handleError(error);
@@ -52,7 +52,7 @@ export const taskApi = {
   // タスクの部分更新（完了状態の切り替えなど）
   async toggleTaskStatus(id, completed) {
     try {
-      const response = await api.patch(`/${id}`, { completed });
+      const response = await api.patch(`/tasks/${id}`, { completed });
       return response.data;
     } catch (error) {
       handleError(error);
@@ -62,7 +62,7 @@ export const taskApi = {
   // タスクの削除
   async deleteTask(id) {
     try {
-      await api.delete(`/${id}`);
+      await api.delete(`/tasks/${id}`);
       return true;
     } catch (error) {
       handleError(error);
@@ -111,4 +111,20 @@ export const commentApi = {
       handleError(error);
     }
   },
+};
+
+// 分析関連のAPI関数
+export const analyticsApi = {
+  // 統計情報の取得
+  async fetchStats() {
+    console.log('Fetching analytics stats...');
+    try {
+      const response = await api.get('/analytics/stats');
+      console.log('Analytics response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Analytics error:', error);
+      handleError(error);
+    }
+  }
 }; 
