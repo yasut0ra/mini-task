@@ -5,6 +5,8 @@ import { LoginForm } from './components/auth/LoginForm';
 import Dashboard from './components/Dashboard';
 import { ToastProvider } from './contexts/ToastContext';
 import { RegisterForm } from './components/auth/RegisterForm';
+import { ForgotPasswordForm } from './components/auth/ForgotPasswordForm';
+import { ResetPasswordForm } from './components/auth/ResetPasswordForm';
 
 // 認証が必要なルートのラッパー
 function PrivateRoute({ children }) {
@@ -67,6 +69,24 @@ function App() {
               element={
                 <PublicRoute>
                   <RegisterForm />
+                </PublicRoute>
+              }
+            />
+
+            <Route
+              path="/forgot-password"
+              element={
+                <PublicRoute>
+                  <ForgotPasswordForm />
+                </PublicRoute>
+              }
+            />
+
+            <Route
+              path="/reset-password/:resetToken"
+              element={
+                <PublicRoute>
+                  <ResetPasswordForm />
                 </PublicRoute>
               }
             />

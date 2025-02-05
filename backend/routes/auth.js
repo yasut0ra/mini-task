@@ -4,6 +4,8 @@ const User = require('../models/user');
 const { protect } = require('../middleware/auth');
 const { sendTokenResponse, generateToken, cookieOptions } = require('../utils/jwt');
 const Token = require('../models/token');
+const sendEmail = require('../utils/sendEmail');
+const crypto = require('crypto');
 
 // ユーザー登録
 router.post('/register', async (req, res) => {
@@ -165,6 +167,97 @@ router.post('/refresh', async (req, res) => {
     res.status(200).json({
       success: true,
       token
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+// パスワードリセットメールの送信
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const user = await User.findOne({ email: req.body.email });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'このメールアドレスは登録されていません'
+      });
+    }
+
+    // リセットトークンの生成
+    const resetToken = user.getResetPasswordToken();
+    await user.save({ validateBeforeSave: false });
+
+    // リセットURLの生成
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+
+    // メール本文の作成
+    const html = `
+      <h1>パスワードリセットのご案内</h1>
+      <p>以下のリンクをクリックしてパスワードをリセットしてください：</p>
+      <a href="${resetUrl}">パスワードをリセット</a>
+      <p>このリンクは1時間後に無効となります。</p>
+      <p>このメールに心当たりがない場合は、無視してください。</p>
+    `;
+
+    await sendEmail({
+      email: user.email,
+      subject: 'パスワードリセットのご案内',
+      html
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'パスワードリセット用のメールを送信しました'
+    });
+  } catch (error) {
+    // エラーが発生した場合はトークンをクリア
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+    await user.save({ validateBeforeSave: false });
+
+    res.status(500).json({
+      success: false,
+      message: 'メールの送信に失敗しました'
+    });
+  }
+});
+
+// パスワードのリセット
+router.put('/reset-password/:resetToken', async (req, res) => {
+  try {
+    // トークンをハッシュ化
+    const resetPasswordToken = crypto
+      .createHash('sha256')
+      .update(req.params.resetToken)
+      .digest('hex');
+
+    // トークンと有効期限で検索
+    const user = await User.findOne({
+      resetPasswordToken,
+      resetPasswordExpire: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: 'パスワードリセットトークンが無効または期限切れです'
+      });
+    }
+
+    // 新しいパスワードを設定
+    user.password = req.body.password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'パスワードを更新しました'
     });
   } catch (error) {
     res.status(500).json({

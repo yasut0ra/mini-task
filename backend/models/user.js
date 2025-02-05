@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const { generateToken } = require('../utils/jwt');
+const crypto = require('crypto');
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -31,9 +32,11 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
+  resetPasswordToken: String,
+  resetPasswordExpire: Date,
   lastLogin: {
     type: Date,
-    default: null
+    default: Date.now
   }
 }, {
   timestamps: true
@@ -66,6 +69,23 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
 // JWTトークンの生成メソッド
 userSchema.methods.generateAuthToken = function() {
   return generateToken(this._id);
+};
+
+// パスワードリセットトークンの生成
+userSchema.methods.getResetPasswordToken = function() {
+  // ランダムなトークンを生成
+  const resetToken = crypto.randomBytes(20).toString('hex');
+
+  // トークンをハッシュ化してDBに保存
+  this.resetPasswordToken = crypto
+    .createHash('sha256')
+    .update(resetToken)
+    .digest('hex');
+
+  // トークンの有効期限を設定（1時間）
+  this.resetPasswordExpire = Date.now() + 60 * 60 * 1000;
+
+  return resetToken;
 };
 
 const User = mongoose.model('User', userSchema);
