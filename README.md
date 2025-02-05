@@ -65,7 +65,3 @@ npm run dev
 フロントエンド:
 cd frontend
 npm run dev
-
-
-## ライセンス
-MIT
