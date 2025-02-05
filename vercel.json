@@ -1,16 +1,18 @@
 {
-  "version": 2,
-  "buildCommand": "npm --prefix frontend install && npm --prefix frontend run build",
-  "outputDirectory": "frontend/dist",
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/backend/server.js"
+    "version": 2,
+    "env": {
+      "NPM_CONFIG_PRODUCTION": "false"
     },
-    {
-      "source": "/(.*)",
-      "destination": "/frontend/dist/$1"
-    }
-  ],
-  "installCommand": "npm install"
-} 
+    "buildCommand": "cd frontend && npm install && npx vite build",
+    "outputDirectory": "frontend/dist",
+    "rewrites": [
+      {
+        "source": "/api/(.*)",
+        "destination": "/backend/server.js"
+      },
+      {
+        "source": "/(.*)",
+        "destination": "/frontend/dist/$1"
+      }
+    ]
+  }
