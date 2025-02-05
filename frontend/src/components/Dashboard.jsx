@@ -121,10 +121,10 @@ function Dashboard() {
   };
 
   const navigation = [
-    { name: 'タスク', icon: ListTodo, view: 'tasks' },
-    { name: '分析', icon: BarChart2, view: 'analytics' },
-    { name: 'カレンダー', icon: CalendarIcon, view: 'calendar' },
-    { name: '設定', icon: SettingsIcon, view: 'settings' },
+    { name: 'タスク', icon: ListTodo, id: 'tasks' },
+    { name: '分析', icon: BarChart2, id: 'analytics' },
+    { name: 'カレンダー', icon: CalendarIcon, id: 'calendar' },
+    { name: '設定', icon: SettingsIcon, id: 'settings' },
   ];
 
   return (
@@ -167,19 +167,19 @@ function Dashboard() {
                 <button
                   key={item.name}
                   onClick={() => {
-                    setCurrentView(item.view);
+                    setCurrentView(item.id);
                     setIsSidebarOpen(false);
                   }}
                   className={`
                     w-full flex items-center gap-3 px-4 py-2 rounded-xl transition-all duration-300 ease-in-out transform hover:scale-102 group
-                    ${currentView === item.view
+                    ${currentView === item.id
                       ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/25'
                       : 'text-gray-700 hover:bg-gray-100'
                     }
                   `}
                 >
                   <item.icon className={`w-5 h-5 transition-all duration-300 ${
-                    currentView === item.view 
+                    currentView === item.id 
                       ? 'rotate-0' 
                       : 'rotate-0 group-hover:rotate-12'
                   }`} />

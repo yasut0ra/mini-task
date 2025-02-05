@@ -3,6 +3,7 @@ const cors = require('cors');
 const taskRoutes = require('./routes/tasks');
 const commentRoutes = require('./routes/comments');
 const analyticsRoutes = require('./routes/analytics');
+const userRoutes = require('./routes/users');
 
 const app = express();
 
@@ -28,6 +29,7 @@ app.use((req, res, next) => {
 app.use('/tasks', taskRoutes);
 app.use('/comments', commentRoutes);
 app.use('/analytics', analyticsRoutes);
+app.use('/users', userRoutes);
 
 // エラーハンドリング
 app.use((err, req, res, next) => {
