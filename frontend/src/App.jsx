@@ -12,14 +12,18 @@ import TaskList from './components/TaskList';
 import Analytics from './components/Analytics';
 import Calendar from './components/Calendar';
 import Settings from './components/Settings';
+import { useStore } from './store/index.jsx';
+import { useToast } from './contexts/ToastContext';
+import { ErrorMessage } from './components/ui/ErrorMessage';
 
 function App() {
   const [tasks, setTasks] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [currentView, setCurrentView] = useState('tasks');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { state: { error }, dispatch } = useStore();
+  const { addToast } = useToast();
 
   // タスク一覧の取得
   useEffect(() => {
@@ -27,16 +31,23 @@ function App() {
       try {
         const data = await taskApi.fetchTasks();
         setTasks(data);
-        setError(null);
+        dispatch({ type: 'CLEAR_ERROR' });
       } catch (err) {
-        setError(err.message);
+        dispatch({ type: 'SET_ERROR', payload: err.message });
       } finally {
         setIsInitialLoading(false);
       }
     };
 
     fetchTasks();
-  }, []);
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (error) {
+      addToast(error, 'error');
+      dispatch({ type: 'CLEAR_ERROR' });
+    }
+  }, [error, addToast, dispatch]);
 
   // タスクの追加
   const addTask = async (taskData) => {
@@ -44,9 +55,9 @@ function App() {
     try {
       const newTask = await taskApi.createTask(taskData);
       setTasks(prevTasks => [...prevTasks, newTask]);
-      setError(null);
+      dispatch({ type: 'CLEAR_ERROR' });
     } catch (err) {
-      setError(err.message);
+      dispatch({ type: 'SET_ERROR', payload: err.message });
     } finally {
       setIsLoading(false);
     }
@@ -58,9 +69,9 @@ function App() {
     try {
       await taskApi.deleteTask(id);
       setTasks(prevTasks => prevTasks.filter(task => task._id !== id));
-      setError(null);
+      dispatch({ type: 'CLEAR_ERROR' });
     } catch (err) {
-      setError(err.message);
+      dispatch({ type: 'SET_ERROR', payload: err.message });
     } finally {
       setIsLoading(false);
     }
@@ -75,9 +86,9 @@ function App() {
       setTasks(prevTasks =>
         prevTasks.map(t => t._id === id ? updatedTask : t)
       );
-      setError(null);
+      dispatch({ type: 'CLEAR_ERROR' });
     } catch (err) {
-      setError(err.message);
+      dispatch({ type: 'SET_ERROR', payload: err.message });
     } finally {
       setIsLoading(false);
     }
@@ -91,9 +102,9 @@ function App() {
       setTasks(prevTasks =>
         prevTasks.map(task => task._id === updatedTask._id ? updated : task)
       );
-      setError(null);
+      dispatch({ type: 'CLEAR_ERROR' });
     } catch (err) {
-      setError(err.message);
+      dispatch({ type: 'SET_ERROR', payload: err.message });
     } finally {
       setIsLoading(false);
     }
@@ -108,11 +119,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {error && (
-        <div className="fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-50">
-          <p>{error}</p>
-        </div>
-      )}
+      {error && <ErrorMessage message={error} />}
 
       {/* モバイルメニューボタン */}
       <button
