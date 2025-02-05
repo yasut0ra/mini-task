@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/user');
 const { protect } = require('../middleware/auth');
-const { sendTokenResponse } = require('../utils/jwt');
+const { sendTokenResponse, generateToken, cookieOptions } = require('../utils/jwt');
+const Token = require('../models/token');
 
 // ユーザー登録
 router.post('/register', async (req, res) => {
@@ -87,6 +88,16 @@ router.get('/logout', (req, res) => {
     httpOnly: true
   });
 
+  res.cookie('refreshToken', 'none', {
+    expires: new Date(Date.now() + 10 * 1000),
+    httpOnly: true
+  });
+
+  // リフレッシュトークンをDBから削除
+  if (req.cookies.refreshToken) {
+    await Token.deleteOne({ token: req.cookies.refreshToken });
+  }
+
   res.status(200).json({
     success: true,
     message: 'ログアウトしました'
@@ -100,6 +111,60 @@ router.get('/me', protect, async (req, res) => {
     res.status(200).json({
       success: true,
       data: user
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+// トークンのリフレッシュ
+router.post('/refresh', async (req, res) => {
+  try {
+    const { refreshToken } = req.cookies;
+
+    if (!refreshToken) {
+      return res.status(401).json({
+        success: false,
+        message: 'リフレッシュトークンが見つかりません'
+      });
+    }
+
+    // DBからリフレッシュトークンを検索
+    const savedToken = await Token.findOne({ token: refreshToken });
+    if (!savedToken) {
+      return res.status(401).json({
+        success: false,
+        message: '無効なリフレッシュトークンです'
+      });
+    }
+
+    // トークンの有効期限をチェック
+    if (savedToken.expires < new Date()) {
+      await savedToken.remove();
+      return res.status(401).json({
+        success: false,
+        message: 'リフレッシュトークンの期限が切れています'
+      });
+    }
+
+    // 新しいアクセストークンを生成
+    const user = await User.findById(savedToken.user);
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'ユーザーが見つかりません'
+      });
+    }
+
+    const token = generateToken(user._id);
+    res.cookie('token', token, cookieOptions);
+
+    res.status(200).json({
+      success: true,
+      token
     });
   } catch (error) {
     res.status(500).json({

@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const Token = require('../models/token');
 
 // JWTの設定
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -10,6 +11,24 @@ const generateToken = (userId) => {
   return jwt.sign({ id: userId }, JWT_SECRET, {
     expiresIn: JWT_EXPIRE
   });
+};
+
+// リフレッシュトークンの生成
+const generateRefreshToken = async (userId) => {
+  const refreshToken = jwt.sign(
+    { id: userId },
+    process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key',
+    { expiresIn: '30d' }
+  );
+
+  // リフレッシュトークンをDBに保存
+  await Token.create({
+    user: userId,
+    token: refreshToken,
+    expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30日
+  });
+
+  return refreshToken;
 };
 
 // トークンの検証
@@ -29,15 +48,21 @@ const cookieOptions = {
   sameSite: 'strict'
 };
 
-// レスポンスにトークンを設定
-const sendTokenResponse = (user, statusCode, res) => {
-  // トークンの生成
+// レスポンスにトークンを設定（更新）
+const sendTokenResponse = async (user, statusCode, res) => {
+  // アクセストークンの生成
   const token = generateToken(user._id);
+  
+  // リフレッシュトークンの生成
+  const refreshToken = await generateRefreshToken(user._id);
 
   // クッキーにトークンを設定
   res.cookie('token', token, cookieOptions);
+  res.cookie('refreshToken', refreshToken, {
+    ...cookieOptions,
+    expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+  });
 
-  // レスポンスを送信
   res.status(statusCode).json({
     success: true,
     token,
@@ -51,6 +76,7 @@ const sendTokenResponse = (user, statusCode, res) => {
 
 module.exports = {
   generateToken,
+  generateRefreshToken,
   verifyToken,
   sendTokenResponse,
   cookieOptions
