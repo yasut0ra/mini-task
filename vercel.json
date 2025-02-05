@@ -12,7 +12,7 @@
       {
         "src": "frontend/package.json",
         "use": "@vercel/static-build",
-        "config": { "distDir": "frontend/dist" }
+        "config": { "distDir": "dist" }
       }
     ],
     "buildCommand": "cd frontend && npm install --include=dev && npx vite build",
@@ -22,8 +22,8 @@
         "destination": "/backend/server.js"
       },
       {
-        "source": "/(.*)",
-        "destination": "/frontend/dist/$1"
+        "source": "/(?!api)(.*)",
+        "destination": "/index.html"
       }
     ]
   }
