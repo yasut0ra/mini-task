@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { store } from '../store/index.jsx';
 
 const API_URL = 'http://localhost:5000';
 
@@ -13,7 +14,21 @@ const api = axios.create({
 // エラーハンドリング用のヘルパー関数
 const handleError = (error) => {
   console.error('API Error:', error);
-  const message = error.response?.data?.message || 'エラーが発生しました';
+  let message = 'エラーが発生しました';
+  
+  if (error.response) {
+    // サーバーからのエラーレスポンス
+    message = error.response.data.message || `エラー: ${error.response.status}`;
+  } else if (error.request) {
+    // リクエストは送信されたがレスポンスがない
+    message = 'サーバーに接続できません';
+  } else {
+    // リクエストの作成時にエラー
+    message = error.message;
+  }
+
+  // グローバルなエラー状態を更新
+  store.dispatch({ type: 'SET_ERROR', payload: message });
   throw new Error(message);
 };
 
