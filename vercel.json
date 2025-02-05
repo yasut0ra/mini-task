@@ -3,6 +3,11 @@
     "env": {
       "NPM_CONFIG_PRODUCTION": "false"
     },
+    "functions": {
+      "backend/server.js": {
+        "runtime": "nodejs18.x"
+      }
+    },
     "buildCommand": "cd frontend && npm install --include=dev && npx vite build",
     "outputDirectory": "frontend/dist",
     "rewrites": [
