@@ -12,17 +12,17 @@ app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
 
-// MongoDBの接続
-mongoose.connect('mongodb://localhost:27017/minitask', {
+// MongoDBの接続（環境変数が設定されていればそちらを使用）
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/minitask', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-}).then(() => console.log('MongoDB Connected'))
+})
+  .then(() => console.log('MongoDB Connected'))
   .catch(err => console.log(err));
 
 app.use('/tasks', taskRoutes);
 app.use('/auth', require('./routes/auth'));
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+// Vercel では serverless-http を利用してエクスポート
+const serverless = require('serverless-http');
+module.exports = serverless(app);
