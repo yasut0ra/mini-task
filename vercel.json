@@ -1,23 +1,29 @@
 {
-  "version": 2,
-  "env": {
-    "NPM_CONFIG_PRODUCTION": "false"
-  },
-  "functions": {
-    "backend/server.js": {
-      "runtime": "nodejs18.x@18.16.0"
-    }
-  },
-  "buildCommand": "cd frontend && npm install --include=dev && npx vite build",
-  "outputDirectory": "frontend/dist",
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/backend/server.js"
+    "version": 2,
+    "env": {
+      "NPM_CONFIG_PRODUCTION": "false"
     },
-    {
-      "source": "/(.*)",
-      "destination": "/frontend/dist/$1"
-    }
-  ]
-}
+    "builds": [
+      {
+        "src": "backend/server.js",
+        "use": "@vercel/node",
+        "config": { "runtime": "nodejs18.x@18.16.0" }
+      },
+      {
+        "src": "frontend/package.json",
+        "use": "@vercel/static-build",
+        "config": { "distDir": "frontend/dist" }
+      }
+    ],
+    "buildCommand": "cd frontend && npm install --include=dev && npx vite build",
+    "rewrites": [
+      {
+        "source": "/api/(.*)",
+        "destination": "/backend/server.js"
+      },
+      {
+        "source": "/(.*)",
+        "destination": "/frontend/dist/$1"
+      }
+    ]
+  }
