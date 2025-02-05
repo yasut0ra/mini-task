@@ -22,7 +22,7 @@
         "destination": "/backend/server.js"
       },
       {
-        "source": "/(?!api)(.*)",
+        "source": "/(.*)",
         "destination": "/index.html"
       }
     ]
