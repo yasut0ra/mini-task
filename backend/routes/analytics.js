@@ -2,6 +2,11 @@ const express = require('express');
 const router = express.Router();
 const Task = require('../models/task');
 
+// テスト用エンドポイント
+router.get('/test', (req, res) => {
+  res.json({ message: 'Analytics route is working' });
+});
+
 // タスクの統計情報を取得
 router.get('/stats', async (req, res) => {
   try {
