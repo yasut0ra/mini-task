@@ -111,4 +111,17 @@ export const commentApi = {
       handleError(error);
     }
   },
+};
+
+// 分析関連のAPI関数
+export const analyticsApi = {
+  // 統計情報の取得
+  async fetchStats() {
+    try {
+      const response = await api.get('/analytics/stats');
+      return response.data;
+    } catch (error) {
+      handleError(error);
+    }
+  }
 }; 
