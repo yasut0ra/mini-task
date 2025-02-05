@@ -9,6 +9,9 @@ const securityMiddleware = require('./middleware/security');
 
 const app = express();
 
+// APIルートのプレフィックスを追加
+app.use('/api', express.Router());
+
 // セキュリティミドルウェアの適用
 securityMiddleware(app);
 
