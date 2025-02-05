@@ -2,11 +2,12 @@ const express = require('express');
 const router = express.Router();
 const Task = require('../models/task');
 const Comment = require('../models/comment');
+const { protect } = require('../middleware/auth');
 
 // タスク一覧の取得
-router.get('/', async (req, res) => {
+router.get('/', protect, async (req, res) => {
   try {
-    const tasks = await Task.find().sort({ createdAt: -1 });
+    const tasks = await Task.find({ user: req.user.id }).sort({ createdAt: -1 });
     res.json(tasks);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -14,9 +15,13 @@ router.get('/', async (req, res) => {
 });
 
 // タスクの追加
-router.post('/', async (req, res) => {
+router.post('/', protect, async (req, res) => {
   try {
-    const task = new Task(req.body);
+    const task = new Task({
+      ...req.body,
+      user: req.user.id
+    });
+    
     const validationError = task.validateSync();
     
     if (validationError) {
@@ -40,9 +45,18 @@ router.post('/', async (req, res) => {
 });
 
 // タスクの更新
-router.put('/:id', async (req, res) => {
+router.put('/:id', protect, async (req, res) => {
   try {
-    const task = await Task.findByIdAndUpdate(
+    // タスクの所有者チェック
+    let task = await Task.findById(req.params.id);
+    if (!task) {
+      return res.status(404).json({ message: 'タスクが見つかりません' });
+    }
+    if (task.user.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'このタスクを編集する権限がありません' });
+    }
+
+    task = await Task.findByIdAndUpdate(
       req.params.id,
       req.body,
       { new: true }
@@ -74,12 +88,18 @@ router.patch('/:id', async (req, res) => {
 });
 
 // タスクの削除
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', protect, async (req, res) => {
   try {
-    const task = await Task.findByIdAndDelete(req.params.id);
+    // タスクの所有者チェック
+    const task = await Task.findById(req.params.id);
     if (!task) {
       return res.status(404).json({ message: 'タスクが見つかりません' });
     }
+    if (task.user.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'このタスクを削除する権限がありません' });
+    }
+
+    await task.remove();
     res.json({ message: 'タスクを削除しました' });
   } catch (error) {
     res.status(500).json({ message: error.message });
