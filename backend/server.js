@@ -12,6 +12,14 @@ app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
 
+// すべてのリクエストから先頭の "/api" を削除するミドルウェア
+app.use((req, res, next) => {
+  if (req.url.startsWith('/api')) {
+    req.url = req.url.replace(/^\/api/, '');
+  }
+  next();
+});
+
 // MongoDBの接続（環境変数が設定されていればそちらを使用）
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/minitask', {
   useNewUrlParser: true,
