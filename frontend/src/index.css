@@ -2,3 +2,89 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900 antialiased;
+  }
+}
+
+@layer components {
+  /* ボタンのベーススタイル */
+  .btn {
+    @apply px-4 py-2 rounded-lg transition-all duration-200 font-medium;
+  }
+
+  .btn-primary {
+    @apply bg-indigo-600 text-white hover:bg-indigo-700 hover:scale-102 shadow-glass hover:shadow-glass-lg;
+  }
+
+  .btn-secondary {
+    @apply bg-white text-gray-600 hover:bg-gray-50 shadow-sm hover:shadow-md;
+  }
+
+  /* カードのベーススタイル */
+  .card {
+    @apply bg-white rounded-xl shadow-glass p-6 hover:shadow-glass-lg transition-all duration-200;
+  }
+
+  /* 入力フィールドのベーススタイル */
+  .input {
+    @apply w-full px-4 py-2 rounded-xl border-0 bg-white/50 shadow-inner-lg focus:ring-2 focus:ring-indigo-500 transition-all duration-200;
+  }
+
+  /* アニメーション付きのコンポーネント */
+  .slide-up {
+    @apply animate-slide-up;
+  }
+
+  .slide-down {
+    @apply animate-slide-down;
+  }
+
+  .fade-in {
+    @apply animate-fade-in;
+  }
+
+  .scale-up {
+    @apply animate-scale-up;
+  }
+
+  /* グラデーションテキスト */
+  .gradient-text {
+    @apply bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent animate-gradient;
+  }
+
+  /* ガラスモーフィズム */
+  .glass {
+    @apply bg-white/80 backdrop-blur-sm shadow-glass;
+  }
+
+  .glass-dark {
+    @apply bg-gray-900/80 backdrop-blur-sm shadow-glass text-white;
+  }
+}
+
+/* スクロールバーのカスタマイズ */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded-full hover:bg-gray-400 transition-colors duration-200;
+}
+
+/* フォーカスアウトラインのカスタマイズ */
+:focus {
+  @apply outline-none ring-2 ring-indigo-500 ring-offset-2;
+}
+
+/* スムーズスクロール */
+html {
+  scroll-behavior: smooth;
+}
+

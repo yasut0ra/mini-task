@@ -131,7 +131,7 @@ function TaskList({ tasks, onAddTask, onToggleTask, onDeleteTask, onUpdateTask, 
 
       {/* タスク入力フォーム */}
       {showAddForm && (
-        <form onSubmit={handleAddTask} className="bg-white rounded-xl p-6 shadow-lg">
+        <form onSubmit={handleAddTask} className="card">
           <div className="space-y-4">
             <div>
               <input
@@ -139,7 +139,7 @@ function TaskList({ tasks, onAddTask, onToggleTask, onDeleteTask, onUpdateTask, 
                 value={newTask}
                 onChange={(e) => setNewTask(e.target.value)}
                 placeholder="タスクを入力..."
-                className="w-full rounded-xl border-0 bg-gray-50 shadow-inner px-4 py-3 text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 transition-all duration-200"
+                className="input"
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -192,7 +192,7 @@ function TaskList({ tasks, onAddTask, onToggleTask, onDeleteTask, onUpdateTask, 
               <button
                 type="submit"
                 disabled={isLoading}
-                className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn btn-primary"
               >
                 {isLoading ? '追加中...' : '追加'}
               </button>
@@ -209,7 +209,7 @@ function TaskList({ tasks, onAddTask, onToggleTask, onDeleteTask, onUpdateTask, 
           {filteredTasks.map(task => (
             <div
               key={task._id}
-              className="group flex items-center gap-4 bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 border border-gray-100/50"
+              className="group flex items-center gap-4 card"
             >
               <button
                 onClick={() => onToggleTask(task._id)}

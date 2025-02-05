@@ -118,30 +118,39 @@ function App() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 animate-gradient">
       {error && <ErrorMessage message={error} />}
 
       {/* モバイルメニューボタン */}
-      <button
-        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        className="fixed top-4 left-4 p-2 rounded-xl bg-white shadow-lg lg:hidden z-50"
-      >
-        {isSidebarOpen ? (
-          <X className="w-6 h-6 text-gray-600" />
-        ) : (
-          <Menu className="w-6 h-6 text-gray-600" />
-        )}
-      </button>
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-200/50">
+        <div className="px-4 py-4 flex items-center justify-between">
+          <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+            MiniTask
+          </h1>
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="p-2 rounded-lg hover:bg-gray-100 transition-all duration-300 ease-in-out"
+          >
+            {isSidebarOpen ? (
+              <X className="w-6 h-6 text-gray-600" />
+            ) : (
+              <Menu className="w-6 h-6 text-gray-600" />
+            )}
+          </button>
+        </div>
+      </div>
 
-      <div className="lg:flex">
+      <div className="lg:grid lg:grid-cols-[280px,1fr] min-h-screen">
         {/* サイドバー */}
         <aside className={`
-          fixed inset-y-0 left-0 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:h-screen
+          fixed inset-y-0 left-0 w-64 bg-white/80 backdrop-blur-lg border-r border-gray-200/50 transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:h-screen
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         `}>
           <div className="h-full flex flex-col">
             <div className="flex items-center justify-center h-16 px-6 border-b border-gray-200">
-              <h1 className="text-xl font-bold text-gray-900">MiniTask</h1>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent animate-gradient">
+                MiniTask
+              </h1>
             </div>
             <nav className="flex-1 p-4 space-y-2">
               {navigation.map((item) => (
@@ -152,14 +161,18 @@ function App() {
                     setIsSidebarOpen(false);
                   }}
                   className={`
-                    w-full flex items-center gap-3 px-4 py-2 text-sm font-medium rounded-xl transition-colors duration-200
+                    w-full flex items-center gap-3 px-4 py-2 rounded-xl transition-all duration-300 ease-in-out transform hover:scale-102 group
                     ${currentView === item.view
-                      ? 'text-indigo-600 bg-indigo-50'
-                      : 'text-gray-600 hover:text-indigo-600 hover:bg-gray-50'
+                      ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/25'
+                      : 'text-gray-700 hover:bg-gray-100'
                     }
                   `}
                 >
-                  <item.icon className="w-5 h-5" />
+                  <item.icon className={`w-5 h-5 transition-all duration-300 ${
+                    currentView === item.view 
+                      ? 'rotate-0' 
+                      : 'rotate-0 group-hover:rotate-12'
+                  }`} />
                   {item.name}
                 </button>
               ))}
