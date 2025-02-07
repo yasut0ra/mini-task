@@ -18,6 +18,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
     trim: true
+
   }
 }, {
   timestamps: true
@@ -35,6 +36,7 @@ userSchema.pre('save', async function(next) {
 // パスワード検証メソッド
 userSchema.methods.comparePassword = async function(candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
+
 };
 
 const User = mongoose.model('User', userSchema);

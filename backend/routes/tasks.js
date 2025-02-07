@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Task = require('../models/task');
 const Comment = require('../models/comment');
+
 const auth = require('../middleware/auth');
 
 // 認証ミドルウェアを全てのルートに適用
@@ -43,10 +44,15 @@ router.post('/', async (req, res) => {
       });
     }
     res.status(500).json({ message: error.message });
+
   }
-});
+
+  const newTask = await task.save();
+  res.status(201).json(newTask);
+}));
 
 // タスクの更新
+
 router.put('/:id', async (req, res) => {
   try {
     const task = await Task.findOneAndUpdate(
@@ -60,10 +66,16 @@ router.put('/:id', async (req, res) => {
     res.json(task);
   } catch (error) {
     res.status(400).json({ message: error.message });
+
   }
-});
+
+  Object.assign(task, req.body);
+  const updatedTask = await task.save();
+  res.json(updatedTask);
+}));
 
 // タスクの部分更新（完了状態の切り替えなど）
+
 router.patch('/:id', async (req, res) => {
   try {
     const task = await Task.findOneAndUpdate(
@@ -77,10 +89,16 @@ router.patch('/:id', async (req, res) => {
     res.json(task);
   } catch (error) {
     res.status(400).json({ message: error.message });
+
   }
-});
+
+  Object.assign(task, req.body);
+  const updatedTask = await task.save();
+  res.json(updatedTask);
+}));
 
 // タスクの削除
+
 router.delete('/:id', async (req, res) => {
   try {
     const task = await Task.findOneAndDelete({ 
@@ -95,11 +113,15 @@ router.delete('/:id', async (req, res) => {
     res.json({ message: 'タスクを削除しました' });
   } catch (error) {
     res.status(500).json({ message: error.message });
+
   }
-});
+
+  res.json({ message: 'タスクを削除しました' });
+}));
 
 // 開発環境でのみ利用可能なエンドポイント
 if (process.env.NODE_ENV === 'development') {
+
   router.delete('/all', async (req, res) => {
     try {
       await Task.deleteMany({ user: req.user._id });
@@ -109,6 +131,7 @@ if (process.env.NODE_ENV === 'development') {
       res.status(500).json({ message: error.message });
     }
   });
+
 }
 
 module.exports = router;
