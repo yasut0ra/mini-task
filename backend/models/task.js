@@ -38,6 +38,11 @@ const taskSchema = new mongoose.Schema({
     trim: true,
     maxlength: [20, 'カテゴリーは20文字以内で入力してください']
   },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: [true, 'ユーザーIDは必須です']
+  },
   createdAt: {
     type: Date,
     default: Date.now

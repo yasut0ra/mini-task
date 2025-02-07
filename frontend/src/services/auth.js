@@ -1,41 +1,65 @@
 import axios from 'axios';
+import { store } from '../store/index.jsx';
 
 const API_URL = import.meta.env.VITE_API_URL;
+
+const api = axios.create({
+  baseURL: `${API_URL}/auth`,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// エラーハンドリング用のヘルパー関数
+const handleError = (error) => {
+  console.error('Auth API Error:', error);
+  let message = 'エラーが発生しました';
+  
+  if (error.response) {
+    message = error.response.data.message || `エラー: ${error.response.status}`;
+  } else if (error.request) {
+    message = 'サーバーに接続できません';
+  } else {
+    message = error.message;
+  }
+
+  store.dispatch({ type: 'SET_ERROR', payload: message });
+  throw new Error(message);
+};
 
 export const authApi = {
   // ユーザー登録
   async register(userData) {
-    const response = await axios.post(`${API_URL}/auth/register`, userData);
-    return response.data;
+    try {
+      const response = await api.post('/register', userData);
+      return response.data;
+    } catch (error) {
+      handleError(error);
+    }
   },
 
   // ログイン
-  async login(email, password) {
-    const response = await axios.post(`${API_URL}/auth/login`, { email, password });
-    return response.data;
+  async login(credentials) {
+    try {
+      const response = await api.post('/login', credentials);
+      return response.data;
+    } catch (error) {
+      handleError(error);
+    }
   },
 
-  // ログアウト
-  async logout() {
-    const response = await axios.get(`${API_URL}/auth/logout`);
-    return response.data;
+  // ユーザー情報の取得
+  async getMe(token) {
+    try {
+      const response = await api.get('/me', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data;
+    } catch (error) {
+      handleError(error);
+    }
   },
 
-  // 現在のユーザー情報を取得
-  async getCurrentUser() {
-    const response = await axios.get(`${API_URL}/auth/me`);
-    return response.data;
-  },
-
-  // パスワードリセットメールの送信
-  async forgotPassword(email) {
-    const response = await axios.post(`${API_URL}/auth/forgot-password`, { email });
-    return response.data;
-  },
-
-  // パスワードのリセット
-  async resetPassword(token, password) {
-    const response = await axios.put(`${API_URL}/auth/reset-password/${token}`, { password });
-    return response.data;
-  }
 }; 

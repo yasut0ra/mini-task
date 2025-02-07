@@ -1,7 +1,7 @@
 import api from './axios';
 import { store } from '../store/index.jsx';
 
-const API_URL = 'http://localhost:5000';
+const API_URL = import.meta.env.VITE_API_URL;
 
 // Axios インスタンスの作成
 const apiInstance = api.create({
@@ -9,6 +9,15 @@ const apiInstance = api.create({
   headers: {
     'Content-Type': 'application/json',
   },
+});
+
+// リクエストインターセプターを追加
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
 // エラーハンドリング用のヘルパー関数
@@ -19,6 +28,12 @@ const handleError = (error) => {
   if (error.response) {
     // サーバーからのエラーレスポンス
     message = error.response.data.message || `エラー: ${error.response.status}`;
+    
+    // 認証エラーの場合、ローカルストレージをクリア
+    if (error.response.status === 401) {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    }
   } else if (error.request) {
     // リクエストは送信されたがレスポンスがない
     message = 'サーバーに接続できません';
@@ -132,13 +147,10 @@ export const commentApi = {
 export const analyticsApi = {
   // 統計情報の取得
   async fetchStats() {
-    console.log('Fetching analytics stats...');
     try {
       const response = await api.get('/analytics/stats');
-      console.log('Analytics response:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Analytics error:', error);
       handleError(error);
     }
   }

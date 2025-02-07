@@ -4,6 +4,7 @@ import './index.css' // このファイルに Tailwind のディレクティブ�
 import App from './App.jsx'
 import { ToastProvider } from './contexts/ToastContext'
 import { StoreProvider } from './store'
+import { AuthProvider } from './contexts/AuthContext'
 import { ErrorBoundary } from './components/ErrorBoundary'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
@@ -11,7 +12,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <ErrorBoundary>
       <StoreProvider>
         <ToastProvider>
-          <App />
+          <AuthProvider>
+            <App />
+          </AuthProvider>
         </ToastProvider>
       </StoreProvider>
     </ErrorBoundary>

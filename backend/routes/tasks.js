@@ -2,32 +2,49 @@ const express = require('express');
 const router = express.Router();
 const Task = require('../models/task');
 const Comment = require('../models/comment');
-const { protect } = require('../middleware/auth');
-const AppError = require('../utils/AppError');
-const catchAsync = require('../utils/catchAsync');
+
+const auth = require('../middleware/auth');
+
+// 認証ミドルウェアを全てのルートに適用
+router.use(auth);
 
 // タスク一覧の取得
-router.get('/', protect, catchAsync(async (req, res) => {
-  const tasks = await Task.find({ user: req.user.id }).sort('-createdAt');
-  res.status(200).json(tasks);
-}));
+router.get('/', async (req, res) => {
+  try {
+    const tasks = await Task.find({ user: req.user._id }).sort({ createdAt: -1 });
+    res.json(tasks);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 
 // タスクの追加
-router.post('/', protect, catchAsync(async (req, res) => {
-  const task = new Task({
-    ...req.body,
-    user: req.user.id
-  });
-  
-  const validationError = task.validateSync();
-  
-  if (validationError) {
-    throw new AppError(
-      Object.values(validationError.errors)
-        .map(err => err.message)
-        .join(', '),
-      400
-    );
+router.post('/', async (req, res) => {
+  try {
+    const task = new Task({
+      ...req.body,
+      user: req.user._id
+    });
+    const validationError = task.validateSync();
+    
+    if (validationError) {
+      return res.status(400).json({
+        message: 'バリデーションエラー',
+        errors: Object.values(validationError.errors).map(err => err.message)
+      });
+    }
+
+    const newTask = await task.save();
+    res.status(201).json(newTask);
+  } catch (error) {
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        message: 'バリデーションエラー',
+        errors: Object.values(error.errors).map(err => err.message)
+      });
+    }
+    res.status(500).json({ message: error.message });
+
   }
 
   const newTask = await task.save();
@@ -35,14 +52,21 @@ router.post('/', protect, catchAsync(async (req, res) => {
 }));
 
 // タスクの更新
-router.put('/:id', protect, catchAsync(async (req, res) => {
-  const task = await Task.findOne({
-    _id: req.params.id,
-    user: req.user.id
-  });
 
-  if (!task) {
-    throw new AppError('タスクが見つかりません', 404);
+router.put('/:id', async (req, res) => {
+  try {
+    const task = await Task.findOneAndUpdate(
+      { _id: req.params.id, user: req.user._id },
+      req.body,
+      { new: true }
+    );
+    if (!task) {
+      return res.status(404).json({ message: 'タスクが見つかりません' });
+    }
+    res.json(task);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+
   }
 
   Object.assign(task, req.body);
@@ -51,14 +75,21 @@ router.put('/:id', protect, catchAsync(async (req, res) => {
 }));
 
 // タスクの部分更新（完了状態の切り替えなど）
-router.patch('/:id', protect, catchAsync(async (req, res) => {
-  const task = await Task.findOne({
-    _id: req.params.id,
-    user: req.user.id
-  });
 
-  if (!task) {
-    throw new AppError('タスクが見つかりません', 404);
+router.patch('/:id', async (req, res) => {
+  try {
+    const task = await Task.findOneAndUpdate(
+      { _id: req.params.id, user: req.user._id },
+      { $set: req.body },
+      { new: true }
+    );
+    if (!task) {
+      return res.status(404).json({ message: 'タスクが見つかりません' });
+    }
+    res.json(task);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+
   }
 
   Object.assign(task, req.body);
@@ -67,14 +98,22 @@ router.patch('/:id', protect, catchAsync(async (req, res) => {
 }));
 
 // タスクの削除
-router.delete('/:id', protect, catchAsync(async (req, res) => {
-  const task = await Task.findOneAndDelete({
-    _id: req.params.id,
-    user: req.user.id
-  });
 
-  if (!task) {
-    throw new AppError('タスクが見つかりません', 404);
+router.delete('/:id', async (req, res) => {
+  try {
+    const task = await Task.findOneAndDelete({ 
+      _id: req.params.id, 
+      user: req.user._id 
+    });
+    if (!task) {
+      return res.status(404).json({ message: 'タスクが見つかりません' });
+    }
+    // 関連するコメントも削除
+    await Comment.deleteMany({ task: req.params.id });
+    res.json({ message: 'タスクを削除しました' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+
   }
 
   res.json({ message: 'タスクを削除しました' });
@@ -82,11 +121,17 @@ router.delete('/:id', protect, catchAsync(async (req, res) => {
 
 // 開発環境でのみ利用可能なエンドポイント
 if (process.env.NODE_ENV === 'development') {
-  router.delete('/all', catchAsync(async (req, res) => {
-    await Task.deleteMany({});
-    await Comment.deleteMany({});
-    res.json({ message: 'すべてのタスクとコメントを削除しました' });
-  }));
+
+  router.delete('/all', async (req, res) => {
+    try {
+      await Task.deleteMany({ user: req.user._id });
+      await Comment.deleteMany({ task: { $in: await Task.find({ user: req.user._id }).distinct('_id') } });
+      res.json({ message: 'すべてのタスクとコメントを削除しました' });
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
 }
 
 module.exports = router;
