@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { 
@@ -51,103 +52,45 @@ function App() {
     }
   }, [dispatch, user]);
 
-  useEffect(() => {
-    if (error) {
-      addToast(error, 'error');
-      dispatch({ type: 'CLEAR_ERROR' });
-    }
-  }, [error, addToast, dispatch]);
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+      </div>
+    );
+  }
 
-  // タスクの追加
-  const addTask = async (taskData) => {
-    setIsLoading(true);
-    try {
-      const newTask = await taskApi.createTask(taskData);
-      setTasks(prevTasks => [...prevTasks, newTask]);
-      dispatch({ type: 'CLEAR_ERROR' });
-    } catch (err) {
-      dispatch({ type: 'SET_ERROR', payload: err.message });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  return user ? children : <Navigate to="/login" />;
+}
 
-  // タスクの削除
-  const deleteTask = async (id) => {
-    setIsLoading(true);
-    try {
-      await taskApi.deleteTask(id);
-      setTasks(prevTasks => prevTasks.filter(task => task._id !== id));
-      dispatch({ type: 'CLEAR_ERROR' });
-    } catch (err) {
-      dispatch({ type: 'SET_ERROR', payload: err.message });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+// 未認証ユーザー用のルート（ログイン済みの場合はダッシュボードへ）
+function PublicRoute({ children }) {
+  const { user, loading } = useAuth();
 
-  // タスクの完了状態の切り替え
-  const toggleTask = async (id) => {
-    setIsLoading(true);
-    try {
-      const task = tasks.find(t => t._id === id);
-      const updatedTask = await taskApi.toggleTaskStatus(id, !task.completed);
-      setTasks(prevTasks =>
-        prevTasks.map(t => t._id === id ? updatedTask : t)
-      );
-      dispatch({ type: 'CLEAR_ERROR' });
-    } catch (err) {
-      dispatch({ type: 'SET_ERROR', payload: err.message });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+      </div>
+    );
+  }
 
-  // タスクの更新
-  const updateTask = async (updatedTask) => {
-    setIsLoading(true);
-    try {
-      const updated = await taskApi.updateTask(updatedTask._id, updatedTask);
-      setTasks(prevTasks =>
-        prevTasks.map(task => task._id === updatedTask._id ? updated : task)
-      );
-      dispatch({ type: 'CLEAR_ERROR' });
-    } catch (err) {
-      dispatch({ type: 'SET_ERROR', payload: err.message });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const navigation = [
-    { name: 'タスク', icon: ListTodo, view: 'tasks' },
-    { name: '分析', icon: BarChart2, view: 'analytics' },
-    { name: 'カレンダー', icon: CalendarIcon, view: 'calendar' },
-    { name: '設定', icon: SettingsIcon, view: 'settings' },
-  ];
+  return user ? <Navigate to="/" /> : children;
+}
 
   const AuthenticatedApp = () => (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 animate-gradient">
       {error && <ErrorMessage message={error} />}
 
-      {/* モバイルメニューボタン */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-200/50">
-        <div className="px-4 py-4 flex items-center justify-between">
-          <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-            MiniTask
-          </h1>
-          <button
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-all duration-300 ease-in-out"
-          >
-            {isSidebarOpen ? (
-              <X className="w-6 h-6 text-gray-600" />
-            ) : (
-              <Menu className="w-6 h-6 text-gray-600" />
-            )}
-          </button>
-        </div>
-      </div>
+            {/* 未認証ユーザー用のルート */}
+            <Route
+              path="/login"
+              element={
+                <PublicRoute>
+                  <LoginForm />
+                </PublicRoute>
+              }
+            />
 
       <div className="lg:grid lg:grid-cols-[280px,1fr] min-h-screen">
         {/* サイドバー */}
@@ -196,44 +139,28 @@ function App() {
           </div>
         </aside>
 
-        {/* メインコンテンツ */}
-        <main className="flex-1 pt-24 lg:pt-0">
-          <div className="max-w-5xl mx-auto px-4 py-8">
-            {isLoading && (
-              <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50">
-                <div className="bg-white p-4 rounded-xl shadow-lg">
-                  <p className="text-gray-600">読み込み中...</p>
-                </div>
-              </div>
-            )}
-            {currentView === 'tasks' && (
-              <TaskList 
-                tasks={tasks}
-                onAddTask={addTask}
-                onToggleTask={toggleTask}
-                onDeleteTask={deleteTask}
-                onUpdateTask={updateTask}
-                isLoading={isLoading}
-                isInitialLoading={isInitialLoading}
-              />
-            )}
-            {currentView === 'analytics' && (
-              <Analytics tasks={tasks} />
-            )}
-            {currentView === 'calendar' && (
-              <Calendar 
-                tasks={tasks}
-                onToggleTask={toggleTask}
-                onDeleteTask={deleteTask}
-              />
-            )}
-            {currentView === 'settings' && (
-              <Settings />
-            )}
-          </div>
-        </main>
-      </div>
-    </div>
+
+            <Route
+              path="/forgot-password"
+              element={
+                <PublicRoute>
+                  <ForgotPasswordForm />
+                </PublicRoute>
+              }
+            />
+
+            <Route
+              path="/reset-password/:resetToken"
+              element={
+                <PublicRoute>
+                  <ResetPasswordForm />
+                </PublicRoute>
+              }
+            />
+          </Routes>
+        </ToastProvider>
+      </AuthProvider>
+    </Router>
   );
 
   return (

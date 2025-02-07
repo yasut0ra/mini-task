@@ -1,10 +1,10 @@
-import axios from 'axios';
+import api from './axios';
 import { store } from '../store/index.jsx';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
 // Axios インスタンスの作成
-const api = axios.create({
+const apiInstance = api.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',

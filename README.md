@@ -38,7 +38,7 @@
 
 1. リポジトリのクローン
 bash
-git clone https://github.com/yourusername/mini-task.git
+git clone https://github.com/yasut0ra/mini-task.git
 cd mini-task
 
 2. フロントエンドの依存関係をインストール
@@ -65,7 +65,3 @@ npm run dev
 フロントエンド:
 cd frontend
 npm run dev
-
-
-## ライセンス
-MIT
