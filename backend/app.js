@@ -3,6 +3,7 @@ const cors = require('cors');
 const taskRoutes = require('./routes/tasks');
 const commentRoutes = require('./routes/comments');
 const analyticsRoutes = require('./routes/analytics');
+const authRoutes = require('./routes/auth');
 
 const app = express();
 
@@ -16,6 +17,7 @@ app.use((req, res, next) => {
 });
 
 // ルートの設定
+app.use('/auth', authRoutes);
 app.use('/tasks', taskRoutes);
 app.use('/comments', commentRoutes);
 app.use('/analytics', analyticsRoutes);

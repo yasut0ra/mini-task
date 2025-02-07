@@ -2,11 +2,15 @@ const express = require('express');
 const router = express.Router();
 const Task = require('../models/task');
 const Comment = require('../models/comment');
+const auth = require('../middleware/auth');
+
+// 認証ミドルウェアを全てのルートに適用
+router.use(auth);
 
 // タスク一覧の取得
 router.get('/', async (req, res) => {
   try {
-    const tasks = await Task.find().sort({ createdAt: -1 });
+    const tasks = await Task.find({ user: req.user._id }).sort({ createdAt: -1 });
     res.json(tasks);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -16,7 +20,10 @@ router.get('/', async (req, res) => {
 // タスクの追加
 router.post('/', async (req, res) => {
   try {
-    const task = new Task(req.body);
+    const task = new Task({
+      ...req.body,
+      user: req.user._id
+    });
     const validationError = task.validateSync();
     
     if (validationError) {
@@ -42,8 +49,8 @@ router.post('/', async (req, res) => {
 // タスクの更新
 router.put('/:id', async (req, res) => {
   try {
-    const task = await Task.findByIdAndUpdate(
-      req.params.id,
+    const task = await Task.findOneAndUpdate(
+      { _id: req.params.id, user: req.user._id },
       req.body,
       { new: true }
     );
@@ -59,8 +66,8 @@ router.put('/:id', async (req, res) => {
 // タスクの部分更新（完了状態の切り替えなど）
 router.patch('/:id', async (req, res) => {
   try {
-    const task = await Task.findByIdAndUpdate(
-      req.params.id,
+    const task = await Task.findOneAndUpdate(
+      { _id: req.params.id, user: req.user._id },
       { $set: req.body },
       { new: true }
     );
@@ -76,10 +83,15 @@ router.patch('/:id', async (req, res) => {
 // タスクの削除
 router.delete('/:id', async (req, res) => {
   try {
-    const task = await Task.findByIdAndDelete(req.params.id);
+    const task = await Task.findOneAndDelete({ 
+      _id: req.params.id, 
+      user: req.user._id 
+    });
     if (!task) {
       return res.status(404).json({ message: 'タスクが見つかりません' });
     }
+    // 関連するコメントも削除
+    await Comment.deleteMany({ task: req.params.id });
     res.json({ message: 'タスクを削除しました' });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -90,8 +102,8 @@ router.delete('/:id', async (req, res) => {
 if (process.env.NODE_ENV === 'development') {
   router.delete('/all', async (req, res) => {
     try {
-      await Task.deleteMany({});
-      await Comment.deleteMany({});
+      await Task.deleteMany({ user: req.user._id });
+      await Comment.deleteMany({ task: { $in: await Task.find({ user: req.user._id }).distinct('_id') } });
       res.json({ message: 'すべてのタスクとコメントを削除しました' });
     } catch (error) {
       res.status(500).json({ message: error.message });
