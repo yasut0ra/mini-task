@@ -4,8 +4,32 @@ import {
   CheckCircle,
   ChevronLeft,
   ChevronRight,
-  RotateCcw
+  RotateCcw,
+  Star,
+  Tag,
+  MoreHorizontal
 } from 'lucide-react';
+
+// 優先度の色を取得する関数
+const getPriorityColor = (priority) => {
+  switch (priority) {
+    case 'high': return 'text-red-500 bg-red-50';
+    case 'medium': return 'text-yellow-500 bg-yellow-50';
+    case 'low': return 'text-green-500 bg-green-50';
+    default: return 'text-gray-400 bg-gray-50';
+  }
+};
+
+// カテゴリーの色を取得する関数
+const getCategoryColor = (category) => {
+  switch (category) {
+    case '仕事': return 'text-blue-600 bg-blue-50';
+    case '個人': return 'text-purple-600 bg-purple-50';
+    case '買い物': return 'text-green-600 bg-green-50';
+    case '勉強': return 'text-yellow-600 bg-yellow-50';
+    default: return 'text-gray-600 bg-gray-50';
+  }
+};
 
 function Calendar({ tasks, setTasks }) {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -62,6 +86,53 @@ function Calendar({ tasks, setTasks }) {
   // 今日の日付
   const today = new Date();
   const isCurrentMonth = today.getMonth() === currentMonth && today.getFullYear() === currentYear;
+
+  // タスクカードのレンダリング
+  const TaskCard = ({ task }) => {
+    const priorityColor = getPriorityColor(task.priority);
+    const categoryColor = task.category ? getCategoryColor(task.category) : '';
+
+    return (
+      <button
+        onClick={() => toggleTask(task._id)}
+        className={`
+          w-full text-left text-xs p-1.5 rounded
+          ${task.completed ? 'opacity-50' : ''}
+          hover:bg-gray-100 transition-all duration-200
+          group relative
+        `}
+      >
+        <div className="flex items-center gap-1">
+          <CheckCircle className={`w-3 h-3 flex-shrink-0 ${
+            task.completed ? 'text-green-500' : 'text-gray-400'
+          }`} />
+          <span className="truncate flex-1">{task.title}</span>
+          <Star className={`w-3 h-3 flex-shrink-0 ${priorityColor.split(' ')[0]}`} />
+        </div>
+
+        {/* ホバー時に表示される詳細情報 */}
+        <div className="
+          absolute left-0 right-0 bottom-full mb-1 p-2 rounded-lg
+          bg-white shadow-lg border border-gray-200
+          opacity-0 invisible group-hover:opacity-100 group-hover:visible
+          transition-all duration-200 z-10
+          text-xs
+        ">
+          <div className="font-medium mb-1">{task.title}</div>
+          <div className="flex flex-wrap gap-1">
+            {task.category && (
+              <span className={`px-1.5 py-0.5 rounded-md ${categoryColor}`}>
+                {task.category}
+              </span>
+            )}
+            <span className={`px-1.5 py-0.5 rounded-md ${priorityColor}`}>
+              {task.priority === 'high' ? '高' : task.priority === 'medium' ? '中' : '低'}
+            </span>
+          </div>
+        </div>
+      </button>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -130,6 +201,11 @@ function Calendar({ tasks, setTasks }) {
             const tasksForDay = getTasksForDate(day);
             const isWeekend = index % 7 === 0 || index % 7 === 6;
 
+            // 表示するタスクの最大数
+            const maxVisibleTasks = 3;
+            const hasMoreTasks = tasksForDay.length > maxVisibleTasks;
+            const visibleTasks = tasksForDay.slice(0, maxVisibleTasks);
+
             return (
               <div
                 key={index}
@@ -147,22 +223,15 @@ function Calendar({ tasks, setTasks }) {
                   {day}
                 </div>
                 <div className="space-y-1">
-                  {tasksForDay.map(task => (
-                    <button
-                      key={task._id}
-                      onClick={() => toggleTask(task._id)}
-                      className={`w-full text-left text-xs p-1 rounded ${
-                        task.completed
-                          ? 'text-green-600 bg-green-50'
-                          : 'text-gray-600 bg-gray-50'
-                      } hover:bg-gray-100 transition-colors duration-200 flex items-center gap-1`}
-                    >
-                      <CheckCircle className={`w-3 h-3 ${
-                        task.completed ? 'text-green-500' : 'text-gray-400'
-                      }`} />
-                      <span className="truncate">{task.title}</span>
-                    </button>
+                  {visibleTasks.map(task => (
+                    <TaskCard key={task._id} task={task} />
                   ))}
+                  {hasMoreTasks && (
+                    <div className="text-xs text-gray-500 flex items-center gap-1">
+                      <MoreHorizontal className="w-3 h-3" />
+                      <span>他{tasksForDay.length - maxVisibleTasks}件</span>
+                    </div>
+                  )}
                 </div>
               </div>
             );
