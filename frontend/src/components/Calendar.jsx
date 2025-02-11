@@ -40,6 +40,9 @@ const getCategoryColor = (category) => {
   }
 };
 
+// 新しい定数を追加して、時間スロット/セルの高さを統一する
+const TIME_SLOT_HEIGHT = "h-16";
+
 // ドラッグ可能なタスクカードコンポーネント
 const DraggableTaskCard = ({ task, onTaskClick, onToggle }) => {
   const [{ isDragging }, drag] = useDrag(() => ({
@@ -459,7 +462,7 @@ function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
             {/* 時間列 */}
             <div className="divide-y divide-gray-200 sticky left-0 bg-white">
               {timeSlots.map((slot, index) => (
-                <div key={index} className="h-16 flex items-center justify-center text-sm text-gray-500">
+                <div key={index} className={`${TIME_SLOT_HEIGHT} flex items-center justify-center text-sm text-gray-500`}>
                   {slot.getHours().toString().padStart(2, '0')}:00
                 </div>
               ))}
