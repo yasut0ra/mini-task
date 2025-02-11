@@ -1,9 +1,16 @@
-import { Calendar as CalendarIcon, CheckCircle } from 'lucide-react';
+import { useState } from 'react';
+import { 
+  Calendar as CalendarIcon, 
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  RotateCcw
+} from 'lucide-react';
 
 function Calendar({ tasks, setTasks }) {
-  const today = new Date();
-  const currentMonth = today.getMonth();
-  const currentYear = today.getFullYear();
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const currentMonth = currentDate.getMonth();
+  const currentYear = currentDate.getFullYear();
 
   // 月の最初の日を取得
   const firstDay = new Date(currentYear, currentMonth, 1);
@@ -19,6 +26,18 @@ function Calendar({ tasks, setTasks }) {
     if (dayNumber < 1 || dayNumber > totalDays) return null;
     return dayNumber;
   });
+
+  // 月を変更する関数
+  const changeMonth = (offset) => {
+    const newDate = new Date(currentDate);
+    newDate.setMonth(newDate.getMonth() + offset);
+    setCurrentDate(newDate);
+  };
+
+  // 今日に戻る関数
+  const goToToday = () => {
+    setCurrentDate(new Date());
+  };
 
   // 特定の日付のタスクを取得
   const getTasksForDate = (day) => {
@@ -40,12 +59,44 @@ function Calendar({ tasks, setTasks }) {
     ));
   };
 
+  // 今日の日付
+  const today = new Date();
+  const isCurrentMonth = today.getMonth() === currentMonth && today.getFullYear() === currentYear;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">
-          {new Date(currentYear, currentMonth).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long' })}
-        </h2>
+        <div className="flex items-center gap-4">
+          <h2 className="text-2xl font-bold text-gray-900">
+            {new Date(currentYear, currentMonth).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long' })}
+          </h2>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => changeMonth(-1)}
+              className="p-1 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+              aria-label="前月"
+            >
+              <ChevronLeft className="w-5 h-5 text-gray-600" />
+            </button>
+            <button
+              onClick={goToToday}
+              className={`px-3 py-1 rounded-lg transition-colors duration-200 ${
+                isCurrentMonth
+                  ? 'bg-indigo-100 text-indigo-700'
+                  : 'hover:bg-gray-100 text-gray-600'
+              }`}
+            >
+              <span className="text-sm font-medium">今日</span>
+            </button>
+            <button
+              onClick={() => changeMonth(1)}
+              className="p-1 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+              aria-label="翌月"
+            >
+              <ChevronRight className="w-5 h-5 text-gray-600" />
+            </button>
+          </div>
+        </div>
         <CalendarIcon className="w-6 h-6 text-gray-400" />
       </div>
 
@@ -53,10 +104,14 @@ function Calendar({ tasks, setTasks }) {
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
         {/* 曜日ヘッダー */}
         <div className="grid grid-cols-7 bg-gray-50 border-b border-gray-200">
-          {['日', '月', '火', '水', '木', '金', '土'].map(day => (
+          {['日', '月', '火', '水', '木', '金', '土'].map((day, index) => (
             <div
               key={day}
-              className="py-2 text-center text-sm font-medium text-gray-500"
+              className={`py-2 text-center text-sm font-medium ${
+                index === 0 ? 'text-red-500' : 
+                index === 6 ? 'text-blue-500' : 
+                'text-gray-500'
+              }`}
             >
               {day}
             </div>
@@ -73,14 +128,21 @@ function Calendar({ tasks, setTasks }) {
             const date = new Date(currentYear, currentMonth, day);
             const isToday = date.toDateString() === today.toDateString();
             const tasksForDay = getTasksForDate(day);
+            const isWeekend = index % 7 === 0 || index % 7 === 6;
 
             return (
               <div
                 key={index}
-                className={`h-32 p-2 ${isToday ? 'bg-indigo-50' : ''}`}
+                className={`h-32 p-2 ${
+                  isToday ? 'bg-indigo-50' : 
+                  isWeekend ? 'bg-gray-50/50' : ''
+                }`}
               >
                 <div className={`text-sm font-medium mb-1 ${
-                  isToday ? 'text-indigo-600' : 'text-gray-900'
+                  isToday ? 'text-indigo-600' :
+                  index % 7 === 0 ? 'text-red-500' :
+                  index % 7 === 6 ? 'text-blue-500' :
+                  'text-gray-900'
                 }`}>
                   {day}
                 </div>
