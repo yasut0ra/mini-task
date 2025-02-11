@@ -30,8 +30,15 @@ const taskSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    trim: true,
-    maxlength: [20, 'カテゴリーは20文字以内で入力してください']
+    enum: {
+      values: ['intelligence', 'emotional', 'health', 'social', 'wealth'],
+      message: 'カテゴリーは intelligence, emotional, health, social, wealth のいずれかを選択してください'
+    },
+    required: [true, 'カテゴリーは必須です']
+  },
+  tag: {
+    type: String,
+    required: [true, 'タグは必須です']
   },
   user: {
     type: mongoose.Schema.Types.ObjectId,
@@ -41,6 +48,9 @@ const taskSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  completedAt: {
+    type: Date
   }
 });
 
@@ -49,6 +59,12 @@ taskSchema.pre('save', function(next) {
   if (this.dueDate && this.dueDate < new Date()) {
     next(new Error('期限を過去の日付に設定することはできません'));
   }
+  
+  // タスクが完了状態になった時に completedAt を設定
+  if (this.isModified('completed') && this.completed) {
+    this.completedAt = new Date();
+  }
+  
   next();
 });
 
