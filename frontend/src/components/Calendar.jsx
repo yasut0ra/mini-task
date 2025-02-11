@@ -44,10 +44,24 @@ const getCategoryColor = (category) => {
 const DraggableTaskCard = ({ task, onTaskClick, onToggle }) => {
   const [{ isDragging }, drag] = useDrag(() => ({
     type: 'TASK',
-    item: { taskId: task._id },
+    item: { 
+      taskId: task._id,
+      originalDate: task.dueDate,
+      title: task.title
+    },
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
+    end: (item, monitor) => {
+      if (!monitor.didDrop()) {
+        // ドロップが無効な場合は元の位置に戻る視覚効果を追加
+        const draggedElement = document.querySelector(`[data-task-id="${item.taskId}"]`);
+        if (draggedElement) {
+          draggedElement.style.transition = 'transform 0.3s ease-in-out';
+          draggedElement.style.transform = 'translate(0, 0)';
+        }
+      }
+    },
   }));
 
   const priorityColor = getPriorityColor(task.priority);
@@ -56,14 +70,19 @@ const DraggableTaskCard = ({ task, onTaskClick, onToggle }) => {
   return (
     <div
       ref={drag}
+      data-task-id={task._id}
       onClick={(e) => onTaskClick(e, task)}
       className={`
         w-full text-left text-xs p-1.5 rounded cursor-move
         ${task.completed ? 'opacity-50' : ''}
-        ${isDragging ? 'opacity-25' : ''}
+        ${isDragging ? 'opacity-25 scale-95' : ''}
         hover:bg-gray-100 transition-all duration-200
         group relative
+        transform
       `}
+      style={{
+        transition: 'transform 0.2s ease-in-out, opacity 0.2s ease-in-out'
+      }}
     >
       <div className="flex items-center gap-1">
         <GripHorizontal className="w-3 h-3 text-gray-400" />
@@ -106,11 +125,23 @@ const DraggableTaskCard = ({ task, onTaskClick, onToggle }) => {
 
 // ドロップ可能な日付セルコンポーネント
 const DroppableDateCell = ({ date, isToday, isWeekend, tasks, onTaskDrop, children }) => {
-  const [{ isOver }, drop] = useDrop(() => ({
+  const [{ isOver, canDrop }, drop] = useDrop(() => ({
     accept: 'TASK',
-    drop: (item) => onTaskDrop(item.taskId, date),
+    canDrop: (item) => {
+      // 同じ日時へのドロップを防ぐ
+      const itemDate = new Date(item.originalDate);
+      return itemDate.getTime() !== date.getTime();
+    },
+    drop: (item) => {
+      const newDate = new Date(date);
+      // 元のタスクの時間情報を保持
+      const originalDate = new Date(item.originalDate);
+      newDate.setHours(originalDate.getHours(), originalDate.getMinutes(), 0, 0);
+      onTaskDrop(item.taskId, newDate);
+    },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
+      canDrop: monitor.canDrop(),
     }),
   }));
 
@@ -118,12 +149,28 @@ const DroppableDateCell = ({ date, isToday, isWeekend, tasks, onTaskDrop, childr
     <div
       ref={drop}
       className={`
-        h-32 p-2
+        h-32 p-2 relative
         ${isToday ? 'bg-indigo-50' : isWeekend ? 'bg-gray-50/50' : ''}
-        ${isOver ? 'bg-indigo-100 ring-2 ring-indigo-400 ring-inset' : ''}
-        transition-colors duration-200
+        ${isOver && canDrop ? 'bg-indigo-100 ring-2 ring-indigo-400 ring-inset' : ''}
+        ${isOver && !canDrop ? 'bg-red-50 ring-2 ring-red-400 ring-inset' : ''}
+        transition-all duration-200
       `}
     >
+      {isOver && (
+        <div className={`
+          absolute inset-0 flex items-center justify-center
+          bg-${canDrop ? 'indigo' : 'red'}-100/50 backdrop-blur-sm
+          transition-opacity duration-200
+          ${isOver ? 'opacity-100' : 'opacity-0'}
+        `}>
+          <div className={`
+            text-sm font-medium
+            text-${canDrop ? 'indigo' : 'red'}-600
+          `}>
+            {canDrop ? 'ドロップしてタスクを移動' : '同じ日時には移動できません'}
+          </div>
+        </div>
+      )}
       {children}
     </div>
   );
@@ -271,15 +318,38 @@ function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
     setSelectedTask(null);
   };
 
-  // タスクのドロップを処理する関数
+  // タスクのドロップを処理する関数を改善
   const handleTaskDrop = async (taskId, date) => {
+    const task = tasks.find(t => t._id === taskId);
+    if (!task) return;
+
     const updatedTask = {
-      ...tasks.find(t => t._id === taskId),
+      ...task,
       dueDate: date.toISOString()
     };
 
-    if (onUpdateTask) {
-      await onUpdateTask(updatedTask);
+    try {
+      if (onUpdateTask) {
+        await onUpdateTask(updatedTask);
+        // 成功時のフィードバック
+        const element = document.querySelector(`[data-task-id="${taskId}"]`);
+        if (element) {
+          element.classList.add('scale-105', 'bg-green-50');
+          setTimeout(() => {
+            element.classList.remove('scale-105', 'bg-green-50');
+          }, 300);
+        }
+      }
+    } catch (error) {
+      console.error('タスクの更新に失敗しました:', error);
+      // エラー時のフィードバック
+      const element = document.querySelector(`[data-task-id="${taskId}"]`);
+      if (element) {
+        element.classList.add('scale-95', 'bg-red-50');
+        setTimeout(() => {
+          element.classList.remove('scale-95', 'bg-red-50');
+        }, 300);
+      }
     }
   };
 
