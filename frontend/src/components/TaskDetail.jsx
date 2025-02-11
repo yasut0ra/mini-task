@@ -14,11 +14,14 @@ import {
 import { validateTask } from '../utils/validation';
 import { LoadingSpinner, TaskDetailSkeleton } from './ui/Loading';
 import { TaskComments } from './TaskComments';
+import { CategorySelect } from './CategorySelect';
 
 function TaskDetail({ task, onClose, onUpdate, onDelete, isLoading }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTask, setEditedTask] = useState(task);
   const [errors, setErrors] = useState({});
+  const [selectedCategory, setSelectedCategory] = useState(task.category || '');
+  const [selectedTag, setSelectedTag] = useState(task.tag || '');
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -30,7 +33,11 @@ function TaskDetail({ task, onClose, onUpdate, onDelete, isLoading }) {
       return;
     }
 
-    onUpdate(editedTask);
+    onUpdate({
+      ...editedTask,
+      category: selectedCategory,
+      tag: selectedTag,
+    });
     setIsEditing(false);
     setErrors({});
   };
@@ -219,12 +226,11 @@ function TaskDetail({ task, onClose, onUpdate, onDelete, isLoading }) {
                       <Tag className="w-5 h-5 text-indigo-600" />
                     </div>
                     {isEditing ? (
-                      <input
-                        type="text"
-                        value={editedTask.category || ''}
-                        onChange={(e) => setEditedTask({ ...editedTask, category: e.target.value })}
-                        placeholder="カテゴリーを入力..."
-                        className="flex-1 px-4 py-2 rounded-xl border-0 bg-gray-50 shadow-inner focus:ring-2 focus:ring-indigo-500"
+                      <CategorySelect
+                        selectedCategory={selectedCategory}
+                        selectedTag={selectedTag}
+                        onCategoryChange={setSelectedCategory}
+                        onTagChange={setSelectedTag}
                       />
                     ) : (
                       <span className="text-gray-600">
