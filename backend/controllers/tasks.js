@@ -1,7 +1,5 @@
 const Task = require('../models/task');
 const User = require('../models/user');
-const asyncHandler = require('../middleware/async');
-const ErrorResponse = require('../utils/errorResponse');
 
 // ステータス更新のポイント定義
 const STATUS_POINTS = {
@@ -13,67 +11,98 @@ const STATUS_POINTS = {
 };
 
 // タスク一覧の取得
-exports.getTasks = asyncHandler(async (req, res, next) => {
-  const tasks = await Task.find({ user: req.user.id });
-  res.status(200).json({ success: true, data: tasks });
-});
+exports.getTasks = async (req, res) => {
+  try {
+    const tasks = await Task.find({ user: req.user.id });
+    res.status(200).json(tasks);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 // タスクの作成
-exports.createTask = asyncHandler(async (req, res, next) => {
-  req.body.user = req.user.id;
-  const task = await Task.create(req.body);
-  res.status(201).json({ success: true, data: task });
-});
+exports.createTask = async (req, res) => {
+  try {
+    req.body.user = req.user.id;
+    const task = await Task.create(req.body);
+    res.status(201).json(task);
+  } catch (error) {
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        message: 'バリデーションエラー',
+        errors: Object.values(error.errors).map(err => err.message)
+      });
+    }
+    res.status(500).json({ message: error.message });
+  }
+};
 
 // タスクの更新
-exports.updateTask = asyncHandler(async (req, res, next) => {
-  let task = await Task.findById(req.params.id);
+exports.updateTask = async (req, res) => {
+  try {
+    let task = await Task.findById(req.params.id);
 
-  if (!task) {
-    return next(new ErrorResponse(`ID: ${req.params.id} のタスクは存在しません`, 404));
+    if (!task) {
+      return res.status(404).json({ message: 'タスクが見つかりません' });
+    }
+
+    // タスクの所有者確認
+    if (task.user.toString() !== req.user.id) {
+      return res.status(401).json({ message: 'このタスクを更新する権限がありません' });
+    }
+
+    const wasCompleted = task.completed;
+    task = await Task.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true
+    });
+
+    // タスクが完了状態に変更された場合、ユーザーのステータスを更新
+    if (!wasCompleted && task.completed) {
+      const user = await User.findById(req.user.id);
+      user.status[task.category] += STATUS_POINTS[task.category];
+      await user.save();
+    }
+
+    res.status(200).json(task);
+  } catch (error) {
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        message: 'バリデーションエラー',
+        errors: Object.values(error.errors).map(err => err.message)
+      });
+    }
+    res.status(500).json({ message: error.message });
   }
-
-  // タスクの所有者確認
-  if (task.user.toString() !== req.user.id) {
-    return next(new ErrorResponse('このタスクを更新する権限がありません', 401));
-  }
-
-  const wasCompleted = task.completed;
-  task = await Task.findByIdAndUpdate(req.params.id, req.body, {
-    new: true,
-    runValidators: true
-  });
-
-  // タスクが完了状態に変更された場合、ユーザーのステータスを更新
-  if (!wasCompleted && task.completed) {
-    const user = await User.findById(req.user.id);
-    user.status[task.category] += STATUS_POINTS[task.category];
-    await user.save();
-  }
-
-  res.status(200).json({ success: true, data: task });
-});
+};
 
 // タスクの削除
-exports.deleteTask = asyncHandler(async (req, res, next) => {
-  const task = await Task.findById(req.params.id);
+exports.deleteTask = async (req, res) => {
+  try {
+    const task = await Task.findById(req.params.id);
 
-  if (!task) {
-    return next(new ErrorResponse(`ID: ${req.params.id} のタスクは存在しません`, 404));
+    if (!task) {
+      return res.status(404).json({ message: 'タスクが見つかりません' });
+    }
+
+    // タスクの所有者確認
+    if (task.user.toString() !== req.user.id) {
+      return res.status(401).json({ message: 'このタスクを削除する権限がありません' });
+    }
+
+    await task.deleteOne();
+    res.status(200).json({ message: 'タスクを削除しました' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
-
-  // タスクの所有者確認
-  if (task.user.toString() !== req.user.id) {
-    return next(new ErrorResponse('このタスクを削除する権限がありません', 401));
-  }
-
-  await task.remove();
-
-  res.status(200).json({ success: true, data: {} });
-});
+};
 
 // ユーザーのステータス取得
-exports.getUserStatus = asyncHandler(async (req, res, next) => {
-  const user = await User.findById(req.user.id);
-  res.status(200).json({ success: true, data: user.status });
-}); 
+exports.getUserStatus = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    res.status(200).json(user.status);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}; 
