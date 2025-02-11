@@ -293,10 +293,29 @@ function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
     return applyFilters(tasksForDate);
   };
 
-  const toggleTask = (taskId) => {
-    setTasks(tasks.map(task =>
-      task._id === taskId ? { ...task, completed: !task.completed } : task
-    ));
+  const toggleTask = async (taskId) => {
+    const task = tasks.find(t => t._id === taskId);
+    if (!task) return;
+
+    const updatedTask = {
+      ...task,
+      completed: !task.completed
+    };
+
+    try {
+      if (onUpdateTask) {
+        // バックエンドAPIを呼び出してタスクを更新
+        const result = await onUpdateTask(updatedTask);
+        if (result) {
+          // 成功した場合のみ、ローカルの状態を更新
+          setTasks(prevTasks =>
+            prevTasks.map(t => t._id === taskId ? result : t)
+          );
+        }
+      }
+    } catch (error) {
+      console.error('タスクの更新に失敗しました:', error);
+    }
   };
 
   // 今日の日付
@@ -311,12 +330,15 @@ function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
   const handleTaskUpdate = async (updatedTask) => {
     try {
       if (onUpdateTask) {
+        // バックエンドAPIを呼び出してタスクを更新
         const result = await onUpdateTask(updatedTask);
-        // APIからの応答を使用してタスクを更新
-        setTasks(prevTasks => 
-          prevTasks.map(t => t._id === updatedTask._id ? result : t)
-        );
-        setSelectedTask(null);
+        if (result) {
+          // 成功した場合のみ、ローカルの状態を更新
+          setTasks(prevTasks => 
+            prevTasks.map(t => t._id === updatedTask._id ? result : t)
+          );
+          setSelectedTask(null);
+        }
       }
     } catch (error) {
       console.error('タスクの更新に失敗しました:', error);
@@ -324,10 +346,19 @@ function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
   };
 
   const handleTaskDelete = async (taskId) => {
-    if (onDeleteTask) {
-      await onDeleteTask(taskId);
+    try {
+      if (onDeleteTask) {
+        // バックエンドAPIを呼び出してタスクを削除
+        const success = await onDeleteTask(taskId);
+        if (success) {
+          // 成功した場合のみ、ローカルの状態を更新
+          setTasks(prevTasks => prevTasks.filter(t => t._id !== taskId));
+          setSelectedTask(null);
+        }
+      }
+    } catch (error) {
+      console.error('タスクの削除に失敗しました:', error);
     }
-    setSelectedTask(null);
   };
 
   // タスクのドロップを処理する関数を改善
@@ -347,19 +378,22 @@ function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
 
     try {
       if (onUpdateTask) {
+        // バックエンドAPIを呼び出してタスクを更新
         const result = await onUpdateTask(updatedTask);
-        // APIからの応答を使用してタスクを更新
-        setTasks(prevTasks => 
-          prevTasks.map(t => t._id === taskId ? result : t)
-        );
+        if (result) {
+          // 成功した場合のみ、ローカルの状態を更新
+          setTasks(prevTasks => 
+            prevTasks.map(t => t._id === taskId ? result : t)
+          );
 
-        // 成功時のビジュアルフィードバック
-        const element = document.querySelector(`[data-task-id="${taskId}"]`);
-        if (element) {
-          element.classList.add('scale-105', 'bg-green-50');
-          setTimeout(() => {
-            element.classList.remove('scale-105', 'bg-green-50');
-          }, 300);
+          // 成功時のビジュアルフィードバック
+          const element = document.querySelector(`[data-task-id="${taskId}"]`);
+          if (element) {
+            element.classList.add('scale-105', 'bg-green-50');
+            setTimeout(() => {
+              element.classList.remove('scale-105', 'bg-green-50');
+            }, 300);
+          }
         }
       }
     } catch (error) {
