@@ -174,6 +174,51 @@ const DroppableDateCell = ({ date, isToday, isWeekend, tasks, onTaskDrop, childr
   );
 };
 
+// DateCell コンポーネントを追加
+const DateCell = ({ date, isToday, isWeekend }) => {
+  if (!date) return <div className="h-32 bg-gray-50" />;
+
+  const tasksForDay = getTasksForDate(date.getDate());
+  const maxVisibleTasks = 3;
+  const hasMoreTasks = tasksForDay.length > maxVisibleTasks;
+  const visibleTasks = tasksForDay.slice(0, maxVisibleTasks);
+
+  return (
+    <DroppableDateCell
+      date={date}
+      isToday={isToday}
+      isWeekend={isWeekend}
+      tasks={tasksForDay}
+      onTaskDrop={handleTaskDrop}
+    >
+      <div className={`text-sm font-medium mb-1 ${
+        isToday ? 'text-indigo-600' :
+        date.getDay() === 0 ? 'text-red-500' :
+        date.getDay() === 6 ? 'text-blue-500' :
+        'text-gray-900'
+      }`}>
+        {date.getDate()}
+      </div>
+      <div className="space-y-1">
+        {visibleTasks.map(task => (
+          <DraggableTaskCard
+            key={task._id}
+            task={task}
+            onTaskClick={handleTaskClick}
+            onToggle={toggleTask}
+          />
+        ))}
+        {hasMoreTasks && (
+          <div className="text-xs text-gray-500 flex items-center gap-1">
+            <MoreHorizontal className="w-3 h-3" />
+            <span>他{tasksForDay.length - maxVisibleTasks}件</span>
+          </div>
+        )}
+      </div>
+    </DroppableDateCell>
+  );
+};
+
 function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedTask, setSelectedTask] = useState(null);
