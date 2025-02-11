@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Task = require('../models/task');
 const Comment = require('../models/comment');
-const { protect } = require('../middleware/auth');
+const auth = require('../middleware/auth');
 const {
   getTasks,
   createTask,
@@ -12,7 +12,7 @@ const {
 } = require('../controllers/tasks');
 
 // 認証ミドルウェアを全てのルートに適用
-router.use(protect);
+router.use(auth);
 
 router.route('/')
   .get(getTasks)
