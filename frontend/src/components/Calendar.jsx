@@ -12,7 +12,8 @@ import {
   Rows,
   Filter,
   X,
-  GripHorizontal
+  GripHorizontal,
+  Calendar as CalendarViewIcon
 } from 'lucide-react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -131,7 +132,7 @@ const DroppableDateCell = ({ date, isToday, isWeekend, tasks, onTaskDrop, childr
 function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedTask, setSelectedTask] = useState(null);
-  const [viewMode, setViewMode] = useState('month'); // 'month' または 'week'
+  const [viewMode, setViewMode] = useState('month'); // 'month', 'week', または 'day'
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     priority: 'all',
@@ -178,13 +179,19 @@ function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
     });
   }
 
-  // 日付を変更する関数
+  // 日付を変更する関数を改善
   const changeDate = (offset) => {
     const newDate = new Date(currentDate);
-    if (viewMode === 'month') {
-      newDate.setMonth(newDate.getMonth() + offset);
-    } else {
-      newDate.setDate(newDate.getDate() + (offset * 7));
+    switch (viewMode) {
+      case 'month':
+        newDate.setMonth(newDate.getMonth() + offset);
+        break;
+      case 'week':
+        newDate.setDate(newDate.getDate() + (offset * 7));
+        break;
+      case 'day':
+        newDate.setDate(newDate.getDate() + offset);
+        break;
     }
     setCurrentDate(newDate);
   };
@@ -326,7 +333,145 @@ function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
     );
   };
 
-  const days = viewMode === 'month' ? getMonthDays() : getWeekDays(currentDate);
+  // 日表示用の時間スロットを生成
+  const getTimeSlots = () => {
+    const slots = [];
+    for (let hour = 0; hour < 24; hour++) {
+      slots.push(new Date(currentDate.setHours(hour, 0, 0, 0)));
+    }
+    return slots;
+  };
+
+  // 特定の時間のタスクを取得
+  const getTasksForTimeSlot = (date) => {
+    return applyFilters(tasks.filter(task => {
+      if (!task.dueDate) return false;
+      const taskDate = new Date(task.dueDate);
+      return (
+        taskDate.getFullYear() === date.getFullYear() &&
+        taskDate.getMonth() === date.getMonth() &&
+        taskDate.getDate() === date.getDate() &&
+        taskDate.getHours() === date.getHours()
+      );
+    }));
+  };
+
+  // 日表示のレンダリング
+  const DayView = () => {
+    const timeSlots = getTimeSlots();
+    const isToday = currentDate.toDateString() === new Date().toDateString();
+
+    return (
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="grid grid-cols-[100px,1fr] divide-x divide-gray-200">
+          {/* 時間列 */}
+          <div className="divide-y divide-gray-200">
+            {timeSlots.map((slot, index) => (
+              <div key={index} className="h-20 p-2 text-sm text-gray-500">
+                {slot.getHours().toString().padStart(2, '0')}:00
+              </div>
+            ))}
+          </div>
+
+          {/* タスク列 */}
+          <div className="divide-y divide-gray-200">
+            {timeSlots.map((slot, index) => {
+              const tasksForSlot = getTasksForTimeSlot(slot);
+              return (
+                <DroppableDateCell
+                  key={index}
+                  date={slot}
+                  isToday={isToday}
+                  tasks={tasksForSlot}
+                  onTaskDrop={handleTaskDrop}
+                >
+                  <div className="h-20 p-2">
+                    {tasksForSlot.map(task => (
+                      <DraggableTaskCard
+                        key={task._id}
+                        task={task}
+                        onTaskClick={handleTaskClick}
+                        onToggle={toggleTask}
+                      />
+                    ))}
+                  </div>
+                </DroppableDateCell>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // 週表示を改善
+  const WeekView = () => {
+    const days = getWeekDays(currentDate);
+    
+    return (
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        {/* 曜日ヘッダー */}
+        <div className="grid grid-cols-8 bg-gray-50 border-b border-gray-200">
+          <div className="py-2 text-center text-sm font-medium text-gray-500">
+            時間
+          </div>
+          {days.map((date, index) => (
+            <div
+              key={index}
+              className={`py-2 text-center text-sm font-medium ${
+                date.getDay() === 0 ? 'text-red-500' :
+                date.getDay() === 6 ? 'text-blue-500' :
+                'text-gray-500'
+              }`}
+            >
+              <div>{['日', '月', '火', '水', '木', '金', '土'][date.getDay()]}</div>
+              <div className="text-xs mt-1">
+                {date.toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* 時間スロット */}
+        <div className="divide-y divide-gray-200">
+          {Array.from({ length: 24 }, (_, hour) => (
+            <div key={hour} className="grid grid-cols-8 divide-x divide-gray-200">
+              <div className="p-2 text-xs text-gray-500">
+                {hour.toString().padStart(2, '0')}:00
+              </div>
+              {days.map((date, index) => {
+                const slotDate = new Date(date);
+                slotDate.setHours(hour, 0, 0, 0);
+                const tasksForSlot = getTasksForTimeSlot(slotDate);
+                
+                return (
+                  <DroppableDateCell
+                    key={index}
+                    date={slotDate}
+                    isToday={date.toDateString() === new Date().toDateString()}
+                    isWeekend={date.getDay() === 0 || date.getDay() === 6}
+                    tasks={tasksForSlot}
+                    onTaskDrop={handleTaskDrop}
+                  >
+                    <div className="h-12 p-1">
+                      {tasksForSlot.map(task => (
+                        <DraggableTaskCard
+                          key={task._id}
+                          task={task}
+                          onTaskClick={handleTaskClick}
+                          onToggle={toggleTask}
+                        />
+                      ))}
+                    </div>
+                  </DroppableDateCell>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   // フィルターパネルのレンダリング
   const FilterPanel = () => {
@@ -406,14 +551,16 @@ function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
             <h2 className="text-2xl font-bold text-gray-900">
               {viewMode === 'month' 
                 ? new Date(currentYear, currentMonth).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long' })
-                : `${currentYear}年 第${currentWeek}週`
+                : viewMode === 'week'
+                ? `${currentYear}年 第${currentWeek}週`
+                : currentDate.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })
               }
             </h2>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => changeDate(-1)}
                 className="p-1 rounded-lg hover:bg-gray-100 transition-colors duration-200"
-                aria-label={viewMode === 'month' ? '前月' : '前週'}
+                aria-label="前へ"
               >
                 <ChevronLeft className="w-5 h-5 text-gray-600" />
               </button>
@@ -430,7 +577,7 @@ function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
               <button
                 onClick={() => changeDate(1)}
                 className="p-1 rounded-lg hover:bg-gray-100 transition-colors duration-200"
-                aria-label={viewMode === 'month' ? '翌月' : '翌週'}
+                aria-label="次へ"
               >
                 <ChevronRight className="w-5 h-5 text-gray-600" />
               </button>
@@ -470,44 +617,56 @@ function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
             >
               <Rows className="w-5 h-5" />
             </button>
+            <button
+              onClick={() => setViewMode('day')}
+              className={`p-2 rounded-lg transition-colors duration-200 ${
+                viewMode === 'day'
+                  ? 'bg-indigo-100 text-indigo-600'
+                  : 'hover:bg-gray-100 text-gray-600'
+              }`}
+              aria-label="日表示"
+            >
+              <CalendarViewIcon className="w-5 h-5" />
+            </button>
           </div>
         </div>
 
         {/* フィルターパネル */}
         {showFilters && <FilterPanel />}
 
-        {/* カレンダーグリッド */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          {/* 曜日ヘッダー */}
-          <div className="grid grid-cols-7 bg-gray-50 border-b border-gray-200">
-            {['日', '月', '火', '水', '木', '金', '土'].map((day, index) => (
-              <div
-                key={day}
-                className={`py-2 text-center text-sm font-medium ${
-                  index === 0 ? 'text-red-500' : 
-                  index === 6 ? 'text-blue-500' : 
-                  'text-gray-500'
-                }`}
-              >
-                {day}
-              </div>
-            ))}
+        {/* カレンダー表示 */}
+        {viewMode === 'month' && (
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            {/* 既存の月表示コード */}
+            <div className="grid grid-cols-7 bg-gray-50 border-b border-gray-200">
+              {['日', '月', '火', '水', '木', '金', '土'].map((day, index) => (
+                <div
+                  key={day}
+                  className={`py-2 text-center text-sm font-medium ${
+                    index === 0 ? 'text-red-500' : 
+                    index === 6 ? 'text-blue-500' : 
+                    'text-gray-500'
+                  }`}
+                >
+                  {day}
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7 divide-x divide-y">
+              {getMonthDays().map((date, index) => (
+                <DateCell
+                  key={index}
+                  date={date}
+                  isToday={date && date.toDateString() === new Date().toDateString()}
+                  isWeekend={date && (date.getDay() === 0 || date.getDay() === 6)}
+                />
+              ))}
+            </div>
           </div>
+        )}
 
-          {/* カレンダー日付 */}
-          <div className={`grid grid-cols-7 divide-x divide-y ${
-            viewMode === 'week' ? 'grid-rows-1' : ''
-          }`}>
-            {days.map((date, index) => (
-              <DateCell
-                key={index}
-                date={date}
-                isToday={date && date.toDateString() === new Date().toDateString()}
-                isWeekend={date && (date.getDay() === 0 || date.getDay() === 6)}
-              />
-            ))}
-          </div>
-        </div>
+        {viewMode === 'week' && <WeekView />}
+        {viewMode === 'day' && <DayView />}
 
         {/* タスク詳細モーダル */}
         {selectedTask && (
