@@ -3,11 +3,13 @@ import { store } from '../store/index.jsx';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
+// Axios インスタンスの作成
 const api = axios.create({
   baseURL: `${API_URL}/auth`,
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true
 });
 
 // エラーハンドリング用のヘルパー関数
@@ -61,5 +63,4 @@ export const authApi = {
       handleError(error);
     }
   },
-
 }; 

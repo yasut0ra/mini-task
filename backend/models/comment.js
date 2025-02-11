@@ -1,15 +1,10 @@
 const mongoose = require('mongoose');
 
 const commentSchema = new mongoose.Schema({
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: [true, 'ユーザーIDは必須です']
-  },
-  task: {
+  taskId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Task',
-    required: [true, 'タスクIDは必須です']
+    required: true
   },
   text: {
     type: String,

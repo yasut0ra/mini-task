@@ -10,6 +10,10 @@ router.post('/register', async (req, res) => {
   try {
     const { email, password, name } = req.body;
     
+    if (!email || !password || !name) {
+      return res.status(400).json({ message: '必須項目が入力されていません' });
+    }
+
     // メールアドレスの重複チェック
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -17,6 +21,16 @@ router.post('/register', async (req, res) => {
     }
 
     const user = new User({ email, password, name });
+    
+    // バリデーションエラーのチェック
+    const validationError = user.validateSync();
+    if (validationError) {
+      return res.status(400).json({
+        message: 'バリデーションエラー',
+        errors: Object.values(validationError.errors).map(err => err.message)
+      });
+    }
+
     await user.save();
 
     // JWTトークンの生成
@@ -35,7 +49,26 @@ router.post('/register', async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(400).json({ message: '登録に失敗しました' });
+    console.error('Registration error:', error);
+    
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        message: 'バリデーションエラー',
+        errors: Object.values(error.errors).map(err => err.message)
+      });
+    }
+    
+    if (error.name === 'MongoError' || error.name === 'MongoServerError') {
+      return res.status(500).json({
+        message: 'データベースエラー',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+    
+    res.status(500).json({ 
+      message: '登録に失敗しました',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
@@ -90,6 +123,5 @@ router.get('/me', auth, async (req, res) => {
     res.status(400).json({ message: 'ユーザー情報の取得に失敗しました' });
   }
 });
-
 
 module.exports = router; 

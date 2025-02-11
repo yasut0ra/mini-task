@@ -18,7 +18,6 @@ export const RegisterForm = () => {
     setFormData(prev => ({
       ...prev,
       [name]: value
-
     }));
   };
 
@@ -178,4 +177,3 @@ export const RegisterForm = () => {
     </div>
   );
 }; 
-

@@ -2,75 +2,77 @@ const express = require('express');
 const router = express.Router();
 const Comment = require('../models/comment');
 const Task = require('../models/task');
-const { protect } = require('../middleware/auth');
-const AppError = require('../utils/AppError');
-const catchAsync = require('../utils/catchAsync');
 
 // タスクのコメント一覧を取得
-router.get('/task/:taskId', protect, catchAsync(async (req, res) => {
-  const task = await Task.findOne({
-    _id: req.params.taskId,
-    user: req.user.id
-  });
-
-  if (!task) {
-    throw new AppError('タスクが見つかりません', 404);
+router.get('/task/:taskId', async (req, res) => {
+  try {
+    const comments = await Comment.find({ taskId: req.params.taskId })
+      .sort({ createdAt: -1 });
+    res.json(comments);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
-
-  const comments = await Comment.find({ task: req.params.taskId })
-    .sort('-createdAt');
-  res.json(comments);
-}));
+});
 
 // コメントを追加
-router.post('/', protect, catchAsync(async (req, res) => {
-  const task = await Task.findOne({
-    _id: req.body.taskId,
-    user: req.user.id
-  });
+router.post('/', async (req, res) => {
+  try {
+    const task = await Task.findById(req.body.taskId);
+    if (!task) {
+      return res.status(404).json({ message: 'タスクが見つかりません' });
+    }
 
-  if (!task) {
-    throw new AppError('タスクが見つかりません', 404);
+    const comment = new Comment({
+      taskId: req.body.taskId,
+      text: req.body.text
+    });
+
+    const newComment = await comment.save();
+    res.status(201).json(newComment);
+  } catch (error) {
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        message: 'バリデーションエラー',
+        errors: Object.values(error.errors).map(err => err.message)
+      });
+    }
+    res.status(500).json({ message: error.message });
   }
-
-  const comment = new Comment({
-    text: req.body.text,
-    task: req.body.taskId,
-    user: req.user.id
-  });
-
-  const savedComment = await comment.save();
-  res.status(201).json(savedComment);
-}));
+});
 
 // コメントを更新
-router.put('/:id', protect, catchAsync(async (req, res) => {
-  const comment = await Comment.findOne({
-    _id: req.params.id,
-    user: req.user.id
-  });
+router.put('/:id', async (req, res) => {
+  try {
+    const comment = await Comment.findById(req.params.id);
+    if (!comment) {
+      return res.status(404).json({ message: 'コメントが見つかりません' });
+    }
 
-  if (!comment) {
-    throw new AppError('コメントが見つかりません', 404);
+    comment.text = req.body.text;
+    const updatedComment = await comment.save();
+    res.json(updatedComment);
+  } catch (error) {
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        message: 'バリデーションエラー',
+        errors: Object.values(error.errors).map(err => err.message)
+      });
+    }
+    res.status(500).json({ message: error.message });
   }
-
-  comment.text = req.body.text;
-  const updatedComment = await comment.save();
-  res.json(updatedComment);
-}));
+});
 
 // コメントを削除
-router.delete('/:id', protect, catchAsync(async (req, res) => {
-  const comment = await Comment.findOneAndDelete({
-    _id: req.params.id,
-    user: req.user.id
-  });
-
-  if (!comment) {
-    throw new AppError('コメントが見つかりません', 404);
+router.delete('/:id', async (req, res) => {
+  try {
+    const comment = await Comment.findByIdAndDelete(req.params.id);
+    if (!comment) {
+      return res.status(404).json({ message: 'コメントが見つかりません' });
+    }
+    res.json({ message: 'コメントを削除しました' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
-
-  res.json({ message: 'コメントを削除しました' });
-}));
+});
 
 module.exports = router; 
