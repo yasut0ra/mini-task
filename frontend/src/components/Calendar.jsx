@@ -7,7 +7,9 @@ import {
   RotateCcw,
   Star,
   Tag,
-  MoreHorizontal
+  MoreHorizontal,
+  LayoutGrid,
+  Rows
 } from 'lucide-react';
 import TaskDetail from './TaskDetail';
 
@@ -35,28 +37,55 @@ const getCategoryColor = (category) => {
 function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedTask, setSelectedTask] = useState(null);
+  const [viewMode, setViewMode] = useState('month'); // 'month' または 'week'
   const currentMonth = currentDate.getMonth();
   const currentYear = currentDate.getFullYear();
+  const currentWeek = getWeekNumber(currentDate);
 
-  // 月の最初の日を取得
-  const firstDay = new Date(currentYear, currentMonth, 1);
-  const startingDay = firstDay.getDay();
+  // 週番号を取得する関数
+  function getWeekNumber(date) {
+    const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+    const pastDaysOfYear = (date - firstDayOfYear) / 86400000;
+    return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+  }
 
-  // 月の最後の日を取得
-  const lastDay = new Date(currentYear, currentMonth + 1, 0);
-  const totalDays = lastDay.getDate();
+  // 週の日付範囲を取得する関数
+  function getWeekDays(date) {
+    const day = date.getDay();
+    const diff = date.getDate() - day;
+    const weekStart = new Date(date);
+    weekStart.setDate(diff);
+    
+    const days = [];
+    for(let i = 0; i < 7; i++) {
+      const day = new Date(weekStart);
+      day.setDate(weekStart.getDate() + i);
+      days.push(day);
+    }
+    return days;
+  }
 
-  // カレンダーの日付配列を作成
-  const days = Array.from({ length: 42 }, (_, i) => {
-    const dayNumber = i - startingDay + 1;
-    if (dayNumber < 1 || dayNumber > totalDays) return null;
-    return dayNumber;
-  });
+  // 月の日付配列を作成
+  function getMonthDays() {
+    const firstDay = new Date(currentYear, currentMonth, 1);
+    const startingDay = firstDay.getDay();
+    const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
 
-  // 月を変更する関数
-  const changeMonth = (offset) => {
+    return Array.from({ length: 42 }, (_, i) => {
+      const dayNumber = i - startingDay + 1;
+      if (dayNumber < 1 || dayNumber > totalDays) return null;
+      return new Date(currentYear, currentMonth, dayNumber);
+    });
+  }
+
+  // 日付を変更する関数
+  const changeDate = (offset) => {
     const newDate = new Date(currentDate);
-    newDate.setMonth(newDate.getMonth() + offset);
+    if (viewMode === 'month') {
+      newDate.setMonth(newDate.getMonth() + offset);
+    } else {
+      newDate.setDate(newDate.getDate() + (offset * 7));
+    }
     setCurrentDate(newDate);
   };
 
@@ -161,18 +190,67 @@ function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
     );
   };
 
+  // 日付セルのレンダリング
+  const DateCell = ({ date, isToday, isWeekend }) => {
+    if (!date) return <div className="h-32 bg-gray-50" />;
+
+    const tasksForDay = getTasksForDate(date.getDate());
+    const maxVisibleTasks = 3;
+    const hasMoreTasks = tasksForDay.length > maxVisibleTasks;
+    const visibleTasks = tasksForDay.slice(0, maxVisibleTasks);
+
+    return (
+      <div
+        className={`h-32 p-2 ${
+          isToday ? 'bg-indigo-50' : 
+          isWeekend ? 'bg-gray-50/50' : ''
+        }`}
+      >
+        <div className={`text-sm font-medium mb-1 ${
+          isToday ? 'text-indigo-600' :
+          date.getDay() === 0 ? 'text-red-500' :
+          date.getDay() === 6 ? 'text-blue-500' :
+          'text-gray-900'
+        }`}>
+          {viewMode === 'week' && (
+            <div className="text-xs text-gray-500 mb-0.5">
+              {date.toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}
+            </div>
+          )}
+          {date.getDate()}
+        </div>
+        <div className="space-y-1">
+          {visibleTasks.map(task => (
+            <TaskCard key={task._id} task={task} />
+          ))}
+          {hasMoreTasks && (
+            <div className="text-xs text-gray-500 flex items-center gap-1">
+              <MoreHorizontal className="w-3 h-3" />
+              <span>他{tasksForDay.length - maxVisibleTasks}件</span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const days = viewMode === 'month' ? getMonthDays() : getWeekDays(currentDate);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <h2 className="text-2xl font-bold text-gray-900">
-            {new Date(currentYear, currentMonth).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long' })}
+            {viewMode === 'month' 
+              ? new Date(currentYear, currentMonth).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long' })
+              : `${currentYear}年 第${currentWeek}週`
+            }
           </h2>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => changeMonth(-1)}
+              onClick={() => changeDate(-1)}
               className="p-1 rounded-lg hover:bg-gray-100 transition-colors duration-200"
-              aria-label="前月"
+              aria-label={viewMode === 'month' ? '前月' : '前週'}
             >
               <ChevronLeft className="w-5 h-5 text-gray-600" />
             </button>
@@ -187,15 +265,38 @@ function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
               <span className="text-sm font-medium">今日</span>
             </button>
             <button
-              onClick={() => changeMonth(1)}
+              onClick={() => changeDate(1)}
               className="p-1 rounded-lg hover:bg-gray-100 transition-colors duration-200"
-              aria-label="翌月"
+              aria-label={viewMode === 'month' ? '翌月' : '翌週'}
             >
               <ChevronRight className="w-5 h-5 text-gray-600" />
             </button>
           </div>
         </div>
-        <CalendarIcon className="w-6 h-6 text-gray-400" />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setViewMode('month')}
+            className={`p-2 rounded-lg transition-colors duration-200 ${
+              viewMode === 'month'
+                ? 'bg-indigo-100 text-indigo-600'
+                : 'hover:bg-gray-100 text-gray-600'
+            }`}
+            aria-label="月表示"
+          >
+            <LayoutGrid className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => setViewMode('week')}
+            className={`p-2 rounded-lg transition-colors duration-200 ${
+              viewMode === 'week'
+                ? 'bg-indigo-100 text-indigo-600'
+                : 'hover:bg-gray-100 text-gray-600'
+            }`}
+            aria-label="週表示"
+          >
+            <Rows className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* カレンダーグリッド */}
@@ -217,52 +318,17 @@ function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
         </div>
 
         {/* カレンダー日付 */}
-        <div className="grid grid-cols-7 divide-x divide-y">
-          {days.map((day, index) => {
-            if (day === null) {
-              return <div key={index} className="h-32 bg-gray-50" />;
-            }
-
-            const date = new Date(currentYear, currentMonth, day);
-            const isToday = date.toDateString() === today.toDateString();
-            const tasksForDay = getTasksForDate(day);
-            const isWeekend = index % 7 === 0 || index % 7 === 6;
-
-            // 表示するタスクの最大数
-            const maxVisibleTasks = 3;
-            const hasMoreTasks = tasksForDay.length > maxVisibleTasks;
-            const visibleTasks = tasksForDay.slice(0, maxVisibleTasks);
-
-            return (
-              <div
-                key={index}
-                className={`h-32 p-2 ${
-                  isToday ? 'bg-indigo-50' : 
-                  isWeekend ? 'bg-gray-50/50' : ''
-                }`}
-              >
-                <div className={`text-sm font-medium mb-1 ${
-                  isToday ? 'text-indigo-600' :
-                  index % 7 === 0 ? 'text-red-500' :
-                  index % 7 === 6 ? 'text-blue-500' :
-                  'text-gray-900'
-                }`}>
-                  {day}
-                </div>
-                <div className="space-y-1">
-                  {visibleTasks.map(task => (
-                    <TaskCard key={task._id} task={task} />
-                  ))}
-                  {hasMoreTasks && (
-                    <div className="text-xs text-gray-500 flex items-center gap-1">
-                      <MoreHorizontal className="w-3 h-3" />
-                      <span>他{tasksForDay.length - maxVisibleTasks}件</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+        <div className={`grid grid-cols-7 divide-x divide-y ${
+          viewMode === 'week' ? 'grid-rows-1' : ''
+        }`}>
+          {days.map((date, index) => (
+            <DateCell
+              key={index}
+              date={date}
+              isToday={date && date.toDateString() === new Date().toDateString()}
+              isWeekend={date && (date.getDay() === 0 || date.getDay() === 6)}
+            />
+          ))}
         </div>
       </div>
 
