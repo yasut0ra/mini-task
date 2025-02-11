@@ -17,6 +17,8 @@ import { filterTasks, getUniqueCategories } from '../utils/filters';
 import { TaskFilters } from './TaskFilters';
 import { CategorySelect } from './CategorySelect';
 import { statusCategories, getCategoryById, getTagLabel, getCategoryColors } from '../utils/categories';
+import { statusApi } from '../services/api';
+import { useToast } from '../contexts/ToastContext';
 
 const getPriorityColor = (priority) => {
   switch (priority) {
@@ -62,6 +64,7 @@ const CategoryBadge = ({ category, tag }) => {
 };
 
 function TaskList({ tasks, onAddTask, onToggleTask, onDeleteTask, onUpdateTask, isLoading, isInitialLoading }) {
+  const { addToast } = useToast();
   const [newTask, setNewTask] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [priority, setPriority] = useState('medium');
@@ -103,6 +106,24 @@ function TaskList({ tasks, onAddTask, onToggleTask, onDeleteTask, onUpdateTask, 
       ...prev,
       [filterType]: value
     }));
+  };
+
+  const handleToggleTask = async (taskId) => {
+    try {
+      const task = tasks.find(t => t._id === taskId);
+      await onToggleTask(taskId);
+      
+      if (!task.completed) {
+        // タスクが完了状態になった場合、ステータスを取得して更新を通知
+        const updatedStatus = await statusApi.fetchStatus();
+        const category = getCategoryById(task.category);
+        if (category) {
+          addToast(`${category.label}のステータスが上昇しました！`, 'success');
+        }
+      }
+    } catch (error) {
+      addToast('タスクの更新中にエラーが発生しました', 'error');
+    }
   };
 
   const categories = getUniqueCategories(tasks);
@@ -236,7 +257,7 @@ function TaskList({ tasks, onAddTask, onToggleTask, onDeleteTask, onUpdateTask, 
               className="group flex items-center gap-4 card hover:shadow-md transition-all duration-200"
             >
               <button
-                onClick={() => onToggleTask(task._id)}
+                onClick={() => handleToggleTask(task._id)}
                 disabled={isLoading}
                 className="flex-shrink-0 focus:outline-none transition-transform duration-200 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
               >

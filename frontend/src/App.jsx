@@ -9,7 +9,7 @@ import {
   X,
   LogOut
 } from 'lucide-react';
-import { taskApi } from './services/api';
+import { taskApi, statusApi } from './services/api';
 import TaskList from './components/TaskList';
 import Analytics from './components/Analytics';
 import Calendar from './components/Calendar';
@@ -31,14 +31,28 @@ function App() {
   const { state: { error }, dispatch } = useStore();
   const { addToast } = useToast();
   const { user, logout } = useAuth();
+  const [userStatus, setUserStatus] = useState(null);
+
+  // ステータスの取得
+  const fetchUserStatus = async () => {
+    try {
+      const data = await statusApi.fetchStatus();
+      setUserStatus(data);
+    } catch (error) {
+      console.error('ステータスの取得に失敗しました:', error);
+    }
+  };
 
   // タスク一覧の取得
   useEffect(() => {
     if (user) {
-      const fetchTasks = async () => {
+      const fetchData = async () => {
         try {
-          const data = await taskApi.fetchTasks();
-          setTasks(data);
+          const [tasksData] = await Promise.all([
+            taskApi.fetchTasks(),
+            fetchUserStatus()
+          ]);
+          setTasks(tasksData);
           dispatch({ type: 'CLEAR_ERROR' });
         } catch (err) {
           dispatch({ type: 'SET_ERROR', payload: err.message });
@@ -47,7 +61,7 @@ function App() {
         }
       };
 
-      fetchTasks();
+      fetchData();
     }
   }, [dispatch, user]);
 
@@ -95,6 +109,12 @@ function App() {
       setTasks(prevTasks =>
         prevTasks.map(t => t._id === id ? updatedTask : t)
       );
+      
+      // タスクが完了状態になった場合、ステータスを更新
+      if (!task.completed) {
+        await fetchUserStatus();
+      }
+      
       dispatch({ type: 'CLEAR_ERROR' });
     } catch (err) {
       dispatch({ type: 'SET_ERROR', payload: err.message });
@@ -218,7 +238,7 @@ function App() {
               />
             )}
             {currentView === 'analytics' && (
-              <Analytics tasks={tasks} />
+              <Analytics tasks={tasks} userStatus={userStatus} />
             )}
             {currentView === 'calendar' && (
               <Calendar 
