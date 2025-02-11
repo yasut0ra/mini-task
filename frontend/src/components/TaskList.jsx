@@ -9,11 +9,12 @@ import {
   Star,
   Search,
   Filter,
-  ExternalLink
+  ExternalLink,
+  ArrowUpDown
 } from 'lucide-react';
 import TaskDetail from './TaskDetail';
 import { TaskListSkeleton } from './ui/Loading';
-import { filterTasks, getUniqueCategories } from '../utils/filters';
+import { filterTasks, getUniqueCategories, sortTasks, sortTypes } from '../utils/filters';
 import { TaskFilters } from './TaskFilters';
 import { CategorySelect } from './CategorySelect';
 import { statusCategories, getCategoryById, getTagLabel, getCategoryColors } from '../utils/categories';
@@ -80,6 +81,7 @@ function TaskList({ tasks, onAddTask, onToggleTask, onDeleteTask, onUpdateTask, 
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [sortType, setSortType] = useState('dueDate');
 
   const handleAddTask = (e) => {
     e.preventDefault();
@@ -127,7 +129,7 @@ function TaskList({ tasks, onAddTask, onToggleTask, onDeleteTask, onUpdateTask, 
   };
 
   const categories = getUniqueCategories(tasks);
-  const filteredTasks = filterTasks(tasks, filters, search);
+  const processedTasks = sortTasks(filterTasks(tasks, filters, search), sortType);
 
   return (
     <div className="space-y-6">
@@ -147,6 +149,15 @@ function TaskList({ tasks, onAddTask, onToggleTask, onDeleteTask, onUpdateTask, 
             </div>
           </div>
           <div className="flex gap-2">
+            <select
+              value={sortType}
+              onChange={(e) => setSortType(e.target.value)}
+              className="px-4 py-2 rounded-xl border-0 bg-white text-gray-600 focus:ring-2 focus:ring-indigo-500 transition-all duration-200"
+            >
+              {Object.entries(sortTypes).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
             <button
               onClick={() => setShowFilters(!showFilters)}
               className={`p-2 rounded-xl transition-colors duration-200 ${
@@ -251,7 +262,7 @@ function TaskList({ tasks, onAddTask, onToggleTask, onDeleteTask, onUpdateTask, 
         <TaskListSkeleton />
       ) : (
         <div className="space-y-3">
-          {filteredTasks.map(task => (
+          {processedTasks.map(task => (
             <div
               key={task._id}
               className="group flex items-center gap-4 card hover:shadow-md transition-all duration-200"
@@ -301,7 +312,7 @@ function TaskList({ tasks, onAddTask, onToggleTask, onDeleteTask, onUpdateTask, 
               </button>
             </div>
           ))}
-          {filteredTasks.length === 0 && (
+          {processedTasks.length === 0 && (
             <div className="text-center py-12">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-100 mb-4">
                 <Filter className="w-8 h-8 text-indigo-600" />

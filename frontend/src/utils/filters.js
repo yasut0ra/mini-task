@@ -107,4 +107,52 @@ export const getUniqueCategories = () => {
     id: category.id,
     label: category.label
   }));
+};
+
+// ソート関連の定数
+export const sortTypes = {
+  dueDate: '期限順',
+  category: 'カテゴリー順',
+  priority: '優先度順',
+  createdAt: '作成日順'
+};
+
+const priorityOrder = {
+  high: 0,
+  medium: 1,
+  low: 2
+};
+
+// ソート関数
+export const sortTasks = (tasks, sortType) => {
+  const sortedTasks = [...tasks];
+
+  switch (sortType) {
+    case 'dueDate':
+      return sortedTasks.sort((a, b) => {
+        if (!a.dueDate) return 1;
+        if (!b.dueDate) return -1;
+        return new Date(a.dueDate) - new Date(b.dueDate);
+      });
+
+    case 'category':
+      return sortedTasks.sort((a, b) => {
+        const categoryA = statusCategories.find(c => c.id === a.category)?.label || '';
+        const categoryB = statusCategories.find(c => c.id === b.category)?.label || '';
+        return categoryA.localeCompare(categoryB);
+      });
+
+    case 'priority':
+      return sortedTasks.sort((a, b) => {
+        return priorityOrder[a.priority] - priorityOrder[b.priority];
+      });
+
+    case 'createdAt':
+      return sortedTasks.sort((a, b) => {
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      });
+
+    default:
+      return sortedTasks;
+  }
 }; 
