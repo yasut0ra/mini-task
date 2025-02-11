@@ -331,6 +331,10 @@ function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
     try {
       if (onUpdateTask) {
         await onUpdateTask(updatedTask);
+        // ローカルのタスク状態も更新
+        setTasks(prevTasks => 
+          prevTasks.map(t => t._id === taskId ? updatedTask : t)
+        );
         // 成功時のフィードバック
         const element = document.querySelector(`[data-task-id="${taskId}"]`);
         if (element) {
