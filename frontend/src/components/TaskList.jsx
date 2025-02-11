@@ -16,6 +16,7 @@ import { TaskListSkeleton } from './ui/Loading';
 import { filterTasks, getUniqueCategories } from '../utils/filters';
 import { TaskFilters } from './TaskFilters';
 import { CategorySelect } from './CategorySelect';
+import { statusCategories, getCategoryById, getTagLabel, getCategoryColors } from '../utils/categories';
 
 const getPriorityColor = (priority) => {
   switch (priority) {
@@ -34,6 +35,30 @@ const getCategoryBadgeColor = (category) => {
     case '勉強': return 'bg-yellow-50 text-yellow-600';
     default: return 'bg-gray-50 text-gray-600';
   }
+};
+
+// カテゴリーバッジコンポーネント
+const CategoryBadge = ({ category, tag }) => {
+  if (!category) return null;
+  
+  const categoryInfo = getCategoryById(category);
+  if (!categoryInfo) return null;
+
+  const { text: textColor, bg: bgColor } = getCategoryColors(category);
+  const tagLabel = getTagLabel(category, tag);
+  const Icon = categoryInfo.icon;
+
+  return (
+    <div className={`inline-flex items-center gap-1 ${bgColor} ${textColor} px-2 py-0.5 rounded-lg text-sm`}>
+      <Icon className="w-3 h-3" />
+      <span>{categoryInfo.label}</span>
+      {tagLabel && (
+        <span className="text-xs opacity-75">
+          • {tagLabel}
+        </span>
+      )}
+    </div>
+  );
 };
 
 function TaskList({ tasks, onAddTask, onToggleTask, onDeleteTask, onUpdateTask, isLoading, isInitialLoading }) {
@@ -208,7 +233,7 @@ function TaskList({ tasks, onAddTask, onToggleTask, onDeleteTask, onUpdateTask, 
           {filteredTasks.map(task => (
             <div
               key={task._id}
-              className="group flex items-center gap-4 card"
+              className="group flex items-center gap-4 card hover:shadow-md transition-all duration-200"
             >
               <button
                 onClick={() => onToggleTask(task._id)}
@@ -222,7 +247,7 @@ function TaskList({ tasks, onAddTask, onToggleTask, onDeleteTask, onUpdateTask, 
                 )}
               </button>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-2">
                   <button
                     onClick={() => setSelectedTask(task)}
                     className="font-medium truncate hover:text-indigo-600 transition-colors duration-200 flex items-center gap-1"
@@ -234,18 +259,15 @@ function TaskList({ tasks, onAddTask, onToggleTask, onDeleteTask, onUpdateTask, 
                   </button>
                   <Star className={`w-4 h-4 ${getPriorityColor(task.priority)}`} />
                 </div>
-                <div className="flex flex-wrap gap-2 text-sm">
+                <div className="flex flex-wrap gap-2 items-center">
                   {task.dueDate && (
-                    <span className="inline-flex items-center text-gray-500">
+                    <span className="inline-flex items-center text-gray-500 text-sm">
                       <Calendar className="w-4 h-4 mr-1" />
                       {new Date(task.dueDate).toLocaleDateString()}
                     </span>
                   )}
                   {task.category && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-600">
-                      <Tag className="w-3 h-3 mr-1" />
-                      {task.category}
-                    </span>
+                    <CategoryBadge category={task.category} tag={task.tag} />
                   )}
                 </div>
               </div>
