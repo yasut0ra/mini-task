@@ -433,41 +433,60 @@ function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
 
     return (
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="grid grid-cols-[100px,1fr] divide-x divide-gray-200">
-          {/* 時間列 */}
-          <div className="divide-y divide-gray-200">
-            {timeSlots.map((slot, index) => (
-              <div key={index} className="h-20 p-2 text-sm text-gray-500">
-                {slot.getHours().toString().padStart(2, '0')}:00
-              </div>
-            ))}
-          </div>
-
-          {/* タスク列 */}
-          <div className="divide-y divide-gray-200">
-            {timeSlots.map((slot, index) => {
-              const tasksForSlot = getTasksForTimeSlot(slot);
-              return (
-                <DroppableDateCell
-                  key={index}
-                  date={slot}
-                  isToday={isToday}
-                  tasks={tasksForSlot}
-                  onTaskDrop={handleTaskDrop}
-                >
-                  <div className="h-20 p-2">
-                    {tasksForSlot.map(task => (
-                      <DraggableTaskCard
-                        key={task._id}
-                        task={task}
-                        onTaskClick={handleTaskClick}
-                        onToggle={toggleTask}
-                      />
-                    ))}
-                  </div>
-                </DroppableDateCell>
-              );
+        {/* 日付ヘッダー */}
+        <div className="border-b border-gray-200 bg-gray-50 p-3">
+          <div className={`text-center font-medium ${
+            isToday ? 'text-indigo-600' :
+            currentDate.getDay() === 0 ? 'text-red-500' :
+            currentDate.getDay() === 6 ? 'text-blue-500' :
+            'text-gray-900'
+          }`}>
+            {currentDate.toLocaleDateString('ja-JP', { 
+              month: 'long', 
+              day: 'numeric',
+              weekday: 'long'
             })}
+          </div>
+        </div>
+
+        {/* スクロール可能なコンテンツエリア */}
+        <div className="max-h-[600px] overflow-y-auto">
+          <div className="grid grid-cols-[80px,1fr] divide-x divide-gray-200 relative">
+            {/* 時間列 */}
+            <div className="divide-y divide-gray-200 sticky left-0 bg-white">
+              {timeSlots.map((slot, index) => (
+                <div key={index} className="h-16 flex items-center justify-center text-sm text-gray-500">
+                  {slot.getHours().toString().padStart(2, '0')}:00
+                </div>
+              ))}
+            </div>
+
+            {/* タスク列 */}
+            <div className="divide-y divide-gray-200">
+              {timeSlots.map((slot, index) => {
+                const tasksForSlot = getTasksForTimeSlot(slot);
+                return (
+                  <DroppableDateCell
+                    key={index}
+                    date={slot}
+                    isToday={isToday}
+                    tasks={tasksForSlot}
+                    onTaskDrop={handleTaskDrop}
+                  >
+                    <div className="h-16 p-1">
+                      {tasksForSlot.map(task => (
+                        <DraggableTaskCard
+                          key={task._id}
+                          task={task}
+                          onTaskClick={handleTaskClick}
+                          onToggle={toggleTask}
+                        />
+                      ))}
+                    </div>
+                  </DroppableDateCell>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
@@ -481,7 +500,7 @@ function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
     return (
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
         {/* 曜日ヘッダー */}
-        <div className="grid grid-cols-8 bg-gray-50 border-b border-gray-200">
+        <div className="grid grid-cols-8 bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
           <div className="py-2 text-center text-sm font-medium text-gray-500">
             時間
           </div>
@@ -502,42 +521,44 @@ function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
           ))}
         </div>
 
-        {/* 時間スロット */}
-        <div className="divide-y divide-gray-200">
-          {Array.from({ length: 24 }, (_, hour) => (
-            <div key={hour} className="grid grid-cols-8 divide-x divide-gray-200">
-              <div className="p-2 text-xs text-gray-500">
-                {hour.toString().padStart(2, '0')}:00
+        {/* スクロール可能なコンテンツエリア */}
+        <div className="max-h-[600px] overflow-y-auto">
+          <div className="divide-y divide-gray-200">
+            {Array.from({ length: 24 }, (_, hour) => (
+              <div key={hour} className="grid grid-cols-8 divide-x divide-gray-200">
+                <div className="p-2 text-xs text-gray-500 sticky left-0 bg-white flex items-center justify-center h-16">
+                  {hour.toString().padStart(2, '0')}:00
+                </div>
+                {days.map((date, index) => {
+                  const slotDate = new Date(date);
+                  slotDate.setHours(hour, 0, 0, 0);
+                  const tasksForSlot = getTasksForTimeSlot(slotDate);
+                  
+                  return (
+                    <DroppableDateCell
+                      key={index}
+                      date={slotDate}
+                      isToday={date.toDateString() === new Date().toDateString()}
+                      isWeekend={date.getDay() === 0 || date.getDay() === 6}
+                      tasks={tasksForSlot}
+                      onTaskDrop={handleTaskDrop}
+                    >
+                      <div className="h-16 p-1">
+                        {tasksForSlot.map(task => (
+                          <DraggableTaskCard
+                            key={task._id}
+                            task={task}
+                            onTaskClick={handleTaskClick}
+                            onToggle={toggleTask}
+                          />
+                        ))}
+                      </div>
+                    </DroppableDateCell>
+                  );
+                })}
               </div>
-              {days.map((date, index) => {
-                const slotDate = new Date(date);
-                slotDate.setHours(hour, 0, 0, 0);
-                const tasksForSlot = getTasksForTimeSlot(slotDate);
-                
-                return (
-                  <DroppableDateCell
-                    key={index}
-                    date={slotDate}
-                    isToday={date.toDateString() === new Date().toDateString()}
-                    isWeekend={date.getDay() === 0 || date.getDay() === 6}
-                    tasks={tasksForSlot}
-                    onTaskDrop={handleTaskDrop}
-                  >
-                    <div className="h-12 p-1">
-                      {tasksForSlot.map(task => (
-                        <DraggableTaskCard
-                          key={task._id}
-                          task={task}
-                          onTaskClick={handleTaskClick}
-                          onToggle={toggleTask}
-                        />
-                      ))}
-                    </div>
-                  </DroppableDateCell>
-                );
-              })}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     );
