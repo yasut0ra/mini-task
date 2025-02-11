@@ -131,22 +131,23 @@ const DroppableDateCell = ({ date, isToday, isWeekend, tasks, onTaskDrop, childr
   const [{ isOver, canDrop }, drop] = useDrop(() => ({
     accept: 'TASK',
     canDrop: (item) => {
-      // 同じ日時へのドロップを防ぐ
+      if (!item.originalDate) return true;
       const itemDate = new Date(item.originalDate);
-      return itemDate.getTime() !== date.getTime();
+      const targetDate = new Date(date);
+      return (
+        itemDate.getFullYear() !== targetDate.getFullYear() ||
+        itemDate.getMonth() !== targetDate.getMonth() ||
+        itemDate.getDate() !== targetDate.getDate()
+      );
     },
     drop: (item) => {
-      const newDate = new Date(date);
-      // 元のタスクの時間情報を保持
-      const originalDate = new Date(item.originalDate);
-      newDate.setHours(originalDate.getHours(), originalDate.getMinutes(), 0, 0);
-      onTaskDrop(item.taskId, newDate);
+      onTaskDrop(item.taskId, date);
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
       canDrop: monitor.canDrop(),
     }),
-  }));
+  }), [date, onTaskDrop]);
 
   return (
     <div
@@ -308,10 +309,18 @@ function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
   };
 
   const handleTaskUpdate = async (updatedTask) => {
-    if (onUpdateTask) {
-      await onUpdateTask(updatedTask);
+    try {
+      if (onUpdateTask) {
+        const result = await onUpdateTask(updatedTask);
+        // APIからの応答を使用してタスクを更新
+        setTasks(prevTasks => 
+          prevTasks.map(t => t._id === updatedTask._id ? result : t)
+        );
+        setSelectedTask(null);
+      }
+    } catch (error) {
+      console.error('タスクの更新に失敗しました:', error);
     }
-    setSelectedTask(null);
   };
 
   const handleTaskDelete = async (taskId) => {
@@ -326,19 +335,25 @@ function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
     const task = tasks.find(t => t._id === taskId);
     if (!task) return;
 
+    // 新しい日付を設定する際、時間情報を保持
+    const updatedDate = new Date(date);
+    const originalDate = new Date(task.dueDate);
+    updatedDate.setHours(originalDate.getHours(), originalDate.getMinutes(), 0, 0);
+
     const updatedTask = {
       ...task,
-      dueDate: date.toISOString()
+      dueDate: updatedDate.toISOString()
     };
 
     try {
       if (onUpdateTask) {
-        await onUpdateTask(updatedTask);
-        // ローカルのタスク状態も更新
+        const result = await onUpdateTask(updatedTask);
+        // APIからの応答を使用してタスクを更新
         setTasks(prevTasks => 
-          prevTasks.map(t => t._id === taskId ? updatedTask : t)
+          prevTasks.map(t => t._id === taskId ? result : t)
         );
-        // 成功時のフィードバック
+
+        // 成功時のビジュアルフィードバック
         const element = document.querySelector(`[data-task-id="${taskId}"]`);
         if (element) {
           element.classList.add('scale-105', 'bg-green-50');
@@ -349,7 +364,7 @@ function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
       }
     } catch (error) {
       console.error('タスクの更新に失敗しました:', error);
-      // エラー時のフィードバック
+      // エラー時のビジュアルフィードバック
       const element = document.querySelector(`[data-task-id="${taskId}"]`);
       if (element) {
         element.classList.add('scale-95', 'bg-red-50');
