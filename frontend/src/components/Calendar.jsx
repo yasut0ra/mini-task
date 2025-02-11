@@ -128,13 +128,11 @@ const DroppableDateCell = ({ date, isToday, isWeekend, tasks, onTaskDrop, childr
   const [{ isOver, canDrop }, drop] = useDrop(() => ({
     accept: 'TASK',
     canDrop: (item) => {
-      // 同じ日時へのドロップを防ぐ
       const itemDate = new Date(item.originalDate);
       return itemDate.getTime() !== date.getTime();
     },
     drop: (item) => {
       const newDate = new Date(date);
-      // 元のタスクの時間情報を保持
       const originalDate = new Date(item.originalDate);
       newDate.setHours(originalDate.getHours(), originalDate.getMinutes(), 0, 0);
       onTaskDrop(item.taskId, newDate);
@@ -149,7 +147,7 @@ const DroppableDateCell = ({ date, isToday, isWeekend, tasks, onTaskDrop, childr
     <div
       ref={drop}
       className={`
-        h-32 p-2 relative
+        h-12 p-1 relative
         ${isToday ? 'bg-indigo-50' : isWeekend ? 'bg-gray-50/50' : ''}
         ${isOver && canDrop ? 'bg-indigo-100 ring-2 ring-indigo-400 ring-inset' : ''}
         ${isOver && !canDrop ? 'bg-red-50 ring-2 ring-red-400 ring-inset' : ''}
@@ -164,7 +162,7 @@ const DroppableDateCell = ({ date, isToday, isWeekend, tasks, onTaskDrop, childr
           ${isOver ? 'opacity-100' : 'opacity-0'}
         `}>
           <div className={`
-            text-sm font-medium
+            text-xs font-medium
             text-${canDrop ? 'indigo' : 'red'}-600
           `}>
             {canDrop ? 'ドロップしてタスクを移動' : '同じ日時には移動できません'}
@@ -438,35 +436,37 @@ function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
     return (
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
         {/* 日付ヘッダー */}
-        <div className="border-b border-gray-200 bg-gray-50 p-3">
-          <div className={`text-center font-medium ${
+        <div className="border-b border-gray-200 bg-gray-50 p-4">
+          <div className={`text-center ${
             isToday ? 'text-indigo-600' :
             currentDate.getDay() === 0 ? 'text-red-500' :
             currentDate.getDay() === 6 ? 'text-blue-500' :
             'text-gray-900'
           }`}>
-            {currentDate.toLocaleDateString('ja-JP', { 
-              month: 'long', 
-              day: 'numeric',
-              weekday: 'long'
-            })}
+            <div className="text-lg font-semibold">
+              {currentDate.toLocaleDateString('ja-JP', { 
+                month: 'long', 
+                day: 'numeric',
+                weekday: 'long'
+              })}
+            </div>
           </div>
         </div>
 
         {/* スクロール可能なコンテンツエリア */}
         <div className="max-h-[600px] overflow-y-auto">
-          <div className="grid grid-cols-[80px,1fr] divide-x divide-gray-200 relative">
+          <div className="flex divide-x divide-gray-200">
             {/* 時間列 */}
-            <div className="divide-y divide-gray-200 sticky left-0 bg-white">
+            <div className="w-16 flex-shrink-0 divide-y divide-gray-200 sticky left-0 bg-white">
               {timeSlots.map((slot, index) => (
-                <div key={index} className="h-16 flex items-center justify-center text-sm text-gray-500">
+                <div key={index} className="h-10 flex items-center justify-end pr-2 text-xs text-gray-500">
                   {slot.getHours().toString().padStart(2, '0')}:00
                 </div>
               ))}
             </div>
 
             {/* タスク列 */}
-            <div className="divide-y divide-gray-200">
+            <div className="flex-1 divide-y divide-gray-200">
               {timeSlots.map((slot, index) => {
                 const tasksForSlot = getTasksForTimeSlot(slot);
                 return (
@@ -477,7 +477,7 @@ function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
                     tasks={tasksForSlot}
                     onTaskDrop={handleTaskDrop}
                   >
-                    <div className="h-16 p-1">
+                    <div className="min-h-[2.5rem] p-0.5">
                       {tasksForSlot.map(task => (
                         <DraggableTaskCard
                           key={task._id}
@@ -497,7 +497,7 @@ function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
     );
   };
 
-  // 週表示を改善
+  // 週表示を修正
   const WeekView = () => {
     const days = getWeekDays(currentDate);
     
@@ -511,15 +511,25 @@ function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
           {days.map((date, index) => (
             <div
               key={index}
-              className={`py-2 text-center text-sm font-medium ${
+              className={`py-4 text-center ${
+                date.toDateString() === new Date().toDateString()
+                  ? 'bg-indigo-50'
+                  : ''
+              }`}
+            >
+              <div className={`text-sm font-medium ${
                 date.getDay() === 0 ? 'text-red-500' :
                 date.getDay() === 6 ? 'text-blue-500' :
                 'text-gray-500'
-              }`}
-            >
-              <div>{['日', '月', '火', '水', '木', '金', '土'][date.getDay()]}</div>
-              <div className="text-xs mt-1">
-                {date.toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })}
+              }`}>
+                {['日', '月', '火', '水', '木', '金', '土'][date.getDay()]}
+              </div>
+              <div className={`text-lg font-semibold ${
+                date.toDateString() === new Date().toDateString()
+                  ? 'text-indigo-600'
+                  : 'text-gray-900'
+              }`}>
+                {date.getDate()}
               </div>
             </div>
           ))}
@@ -530,7 +540,7 @@ function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
           <div className="divide-y divide-gray-200">
             {Array.from({ length: 24 }, (_, hour) => (
               <div key={hour} className="grid grid-cols-8 divide-x divide-gray-200">
-                <div className="p-2 text-xs text-gray-500 sticky left-0 bg-white flex items-center justify-center h-16">
+                <div className="p-1 text-xs text-gray-500 sticky left-0 bg-white flex items-center justify-center h-10">
                   {hour.toString().padStart(2, '0')}:00
                 </div>
                 {days.map((date, index) => {
@@ -547,7 +557,7 @@ function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
                       tasks={tasksForSlot}
                       onTaskDrop={handleTaskDrop}
                     >
-                      <div className="h-16 p-1">
+                      <div className="min-h-[2.5rem] p-0.5">
                         {tasksForSlot.map(task => (
                           <DraggableTaskCard
                             key={task._id}
