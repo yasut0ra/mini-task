@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   PlusCircle, 
   Trash2, 
@@ -9,12 +9,15 @@ import {
   Star,
   Search,
   Filter,
-  ExternalLink
+  ExternalLink,
+  ArrowUpDown
 } from 'lucide-react';
 import TaskDetail from './TaskDetail';
 import { TaskListSkeleton } from './ui/Loading';
 import { filterTasks, getUniqueCategories } from '../utils/filters';
 import { TaskFilters } from './TaskFilters';
+import { TaskSort } from './TaskSort';
+import { sortTasks, loadSortConfig, saveSortConfig } from '../utils/sorting';
 
 const getPriorityColor = (priority) => {
   switch (priority) {
@@ -46,10 +49,16 @@ function TaskList({ tasks, onAddTask, onToggleTask, onDeleteTask, onUpdateTask, 
     dueDate: 'all',
     category: null
   });
+  const [sortConfig, setSortConfig] = useState(loadSortConfig());
   const [search, setSearch] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [showSort, setShowSort] = useState(false);
+
+  useEffect(() => {
+    saveSortConfig(sortConfig);
+  }, [sortConfig]);
 
   const handleAddTask = (e) => {
     e.preventDefault();
@@ -76,8 +85,13 @@ function TaskList({ tasks, onAddTask, onToggleTask, onDeleteTask, onUpdateTask, 
     }));
   };
 
+  const handleSortChange = (newSortConfig) => {
+    setSortConfig(newSortConfig);
+  };
+
   const categories = getUniqueCategories(tasks);
   const filteredTasks = filterTasks(tasks, filters, search);
+  const sortedTasks = sortTasks(filteredTasks, sortConfig);
 
   return (
     <div className="space-y-6">
@@ -98,6 +112,14 @@ function TaskList({ tasks, onAddTask, onToggleTask, onDeleteTask, onUpdateTask, 
           </div>
           <div className="flex gap-2">
             <button
+              onClick={() => setShowSort(!showSort)}
+              className={`p-2 rounded-xl transition-colors duration-200 ${
+                showSort ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <ArrowUpDown className="w-5 h-5" />
+            </button>
+            <button
               onClick={() => setShowFilters(!showFilters)}
               className={`p-2 rounded-xl transition-colors duration-200 ${
                 showFilters ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
@@ -108,6 +130,14 @@ function TaskList({ tasks, onAddTask, onToggleTask, onDeleteTask, onUpdateTask, 
           </div>
         </div>
       </div>
+
+      {/* ソートパネル */}
+      {showSort && (
+        <TaskSort
+          sortConfig={sortConfig}
+          onSortChange={handleSortChange}
+        />
+      )}
 
       {/* フィルターパネル */}
       {showFilters && (
@@ -206,7 +236,7 @@ function TaskList({ tasks, onAddTask, onToggleTask, onDeleteTask, onUpdateTask, 
         <TaskListSkeleton />
       ) : (
         <div className="space-y-3">
-          {filteredTasks.map(task => (
+          {sortedTasks.map(task => (
             <div
               key={task._id}
               className="group flex items-center gap-4 card"
@@ -259,7 +289,7 @@ function TaskList({ tasks, onAddTask, onToggleTask, onDeleteTask, onUpdateTask, 
               </button>
             </div>
           ))}
-          {filteredTasks.length === 0 && (
+          {sortedTasks.length === 0 && (
             <div className="text-center py-12">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-100 mb-4">
                 <Filter className="w-8 h-8 text-indigo-600" />
