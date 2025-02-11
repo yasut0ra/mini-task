@@ -9,6 +9,7 @@ import {
   Tag,
   MoreHorizontal
 } from 'lucide-react';
+import TaskDetail from './TaskDetail';
 
 // 優先度の色を取得する関数
 const getPriorityColor = (priority) => {
@@ -31,8 +32,9 @@ const getCategoryColor = (category) => {
   }
 };
 
-function Calendar({ tasks, setTasks }) {
+function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedTask, setSelectedTask] = useState(null);
   const currentMonth = currentDate.getMonth();
   const currentYear = currentDate.getFullYear();
 
@@ -87,6 +89,25 @@ function Calendar({ tasks, setTasks }) {
   const today = new Date();
   const isCurrentMonth = today.getMonth() === currentMonth && today.getFullYear() === currentYear;
 
+  const handleTaskClick = (e, task) => {
+    e.stopPropagation(); // イベントの伝播を停止
+    setSelectedTask(task);
+  };
+
+  const handleTaskUpdate = async (updatedTask) => {
+    if (onUpdateTask) {
+      await onUpdateTask(updatedTask);
+    }
+    setSelectedTask(null);
+  };
+
+  const handleTaskDelete = async (taskId) => {
+    if (onDeleteTask) {
+      await onDeleteTask(taskId);
+    }
+    setSelectedTask(null);
+  };
+
   // タスクカードのレンダリング
   const TaskCard = ({ task }) => {
     const priorityColor = getPriorityColor(task.priority);
@@ -94,7 +115,7 @@ function Calendar({ tasks, setTasks }) {
 
     return (
       <button
-        onClick={() => toggleTask(task._id)}
+        onClick={(e) => handleTaskClick(e, task)}
         className={`
           w-full text-left text-xs p-1.5 rounded
           ${task.completed ? 'opacity-50' : ''}
@@ -103,9 +124,15 @@ function Calendar({ tasks, setTasks }) {
         `}
       >
         <div className="flex items-center gap-1">
-          <CheckCircle className={`w-3 h-3 flex-shrink-0 ${
-            task.completed ? 'text-green-500' : 'text-gray-400'
-          }`} />
+          <CheckCircle 
+            className={`w-3 h-3 flex-shrink-0 ${
+              task.completed ? 'text-green-500' : 'text-gray-400'
+            }`}
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleTask(task._id);
+            }}
+          />
           <span className="truncate flex-1">{task.title}</span>
           <Star className={`w-3 h-3 flex-shrink-0 ${priorityColor.split(' ')[0]}`} />
         </div>
@@ -238,6 +265,16 @@ function Calendar({ tasks, setTasks }) {
           })}
         </div>
       </div>
+
+      {/* タスク詳細モーダル */}
+      {selectedTask && (
+        <TaskDetail
+          task={selectedTask}
+          onClose={() => setSelectedTask(null)}
+          onUpdate={handleTaskUpdate}
+          onDelete={handleTaskDelete}
+        />
+      )}
     </div>
   );
 }
