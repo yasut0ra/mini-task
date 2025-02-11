@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Brain, 
   Heart, 
@@ -7,10 +7,12 @@ import {
   Coins, 
   TrendingUp, 
   History, 
-  Award 
+  Award,
+  Loader2
 } from 'lucide-react';
 import { calculateLevelProgress, getStatusColor } from '../utils/status';
 import StatusDisplay from './StatusDisplay';
+import { statusApi } from '../services/api';
 
 const statusConfigs = [
   {
@@ -50,7 +52,46 @@ const statusConfigs = [
   }
 ];
 
-export default function Status({ status }) {
+export default function Status() {
+  const [status, setStatus] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        const data = await statusApi.fetchStatus();
+        setStatus(data);
+      } catch (err) {
+        setError('ステータスの取得に失敗しました');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStatus();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center text-red-500 p-4">
+        {error}
+      </div>
+    );
+  }
+
+  if (!status) {
+    return null;
+  }
+
   return (
     <div className="space-y-8">
       {/* ヘッダー */}

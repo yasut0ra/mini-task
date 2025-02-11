@@ -155,4 +155,17 @@ export const analyticsApi = {
       handleError(error);
     }
   }
+};
+
+// ステータス関連のAPI関数
+export const statusApi = {
+  // ユーザーのステータス情報を取得
+  async fetchStatus() {
+    try {
+      const response = await api.get('/tasks/status');
+      return response.data;
+    } catch (error) {
+      handleError(error);
+    }
+  },
 }; 
