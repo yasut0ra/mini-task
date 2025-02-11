@@ -355,79 +355,6 @@ function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
     }
   };
 
-  // 日付セルのレンダリング
-  const DateCell = ({ date, isToday, isWeekend }) => {
-    if (!date) return <div className="h-32 bg-gray-50" />;
-
-    const tasksForDay = getTasksForDate(date.getDate());
-    const maxVisibleTasks = 3;
-    const hasMoreTasks = tasksForDay.length > maxVisibleTasks;
-    const visibleTasks = tasksForDay.slice(0, maxVisibleTasks);
-
-    return (
-      <DroppableDateCell
-        date={date}
-        isToday={isToday}
-        isWeekend={isWeekend}
-        tasks={tasksForDay}
-        onTaskDrop={handleTaskDrop}
-      >
-        <div className={`text-sm font-medium mb-1 ${
-          isToday ? 'text-indigo-600' :
-          date.getDay() === 0 ? 'text-red-500' :
-          date.getDay() === 6 ? 'text-blue-500' :
-          'text-gray-900'
-        }`}>
-          {viewMode === 'week' && (
-            <div className="text-xs text-gray-500 mb-0.5">
-              {date.toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}
-            </div>
-          )}
-          {date.getDate()}
-        </div>
-        <div className="space-y-1">
-          {visibleTasks.map(task => (
-            <DraggableTaskCard
-              key={task._id}
-              task={task}
-              onTaskClick={handleTaskClick}
-              onToggle={toggleTask}
-            />
-          ))}
-          {hasMoreTasks && (
-            <div className="text-xs text-gray-500 flex items-center gap-1">
-              <MoreHorizontal className="w-3 h-3" />
-              <span>他{tasksForDay.length - maxVisibleTasks}件</span>
-            </div>
-          )}
-        </div>
-      </DroppableDateCell>
-    );
-  };
-
-  // 日表示用の時間スロットを生成
-  const getTimeSlots = () => {
-    const slots = [];
-    for (let hour = 0; hour < 24; hour++) {
-      slots.push(new Date(currentDate.setHours(hour, 0, 0, 0)));
-    }
-    return slots;
-  };
-
-  // 特定の時間のタスクを取得
-  const getTasksForTimeSlot = (date) => {
-    return applyFilters(tasks.filter(task => {
-      if (!task.dueDate) return false;
-      const taskDate = new Date(task.dueDate);
-      return (
-        taskDate.getFullYear() === date.getFullYear() &&
-        taskDate.getMonth() === date.getMonth() &&
-        taskDate.getDate() === date.getDate() &&
-        taskDate.getHours() === date.getHours()
-      );
-    }));
-  };
-
   // 日表示のレンダリング
   const DayView = () => {
     const timeSlots = getTimeSlots();
@@ -455,18 +382,18 @@ function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
 
         {/* スクロール可能なコンテンツエリア */}
         <div className="max-h-[600px] overflow-y-auto">
-          <div className="flex divide-x divide-gray-200">
+          <div className="grid grid-cols-[80px,1fr] divide-x divide-gray-200">
             {/* 時間列 */}
-            <div className="w-16 flex-shrink-0 divide-y divide-gray-200 sticky left-0 bg-white">
+            <div className="divide-y divide-gray-200 sticky left-0 bg-white">
               {timeSlots.map((slot, index) => (
-                <div key={index} className="h-10 flex items-center justify-end pr-2 text-xs text-gray-500">
+                <div key={index} className="h-16 flex items-center justify-end pr-4 text-sm text-gray-500">
                   {slot.getHours().toString().padStart(2, '0')}:00
                 </div>
               ))}
             </div>
 
             {/* タスク列 */}
-            <div className="flex-1 divide-y divide-gray-200">
+            <div className="divide-y divide-gray-200">
               {timeSlots.map((slot, index) => {
                 const tasksForSlot = getTasksForTimeSlot(slot);
                 return (
@@ -477,7 +404,7 @@ function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
                     tasks={tasksForSlot}
                     onTaskDrop={handleTaskDrop}
                   >
-                    <div className="min-h-[2.5rem] p-0.5">
+                    <div className="min-h-[4rem] p-1">
                       {tasksForSlot.map(task => (
                         <DraggableTaskCard
                           key={task._id}
@@ -495,6 +422,29 @@ function Calendar({ tasks, setTasks, onUpdateTask, onDeleteTask }) {
         </div>
       </div>
     );
+  };
+
+  // 日表示用の時間スロットを生成
+  const getTimeSlots = () => {
+    const slots = [];
+    for (let hour = 0; hour < 24; hour++) {
+      slots.push(new Date(currentDate.setHours(hour, 0, 0, 0)));
+    }
+    return slots;
+  };
+
+  // 特定の時間のタスクを取得
+  const getTasksForTimeSlot = (date) => {
+    return applyFilters(tasks.filter(task => {
+      if (!task.dueDate) return false;
+      const taskDate = new Date(task.dueDate);
+      return (
+        taskDate.getFullYear() === date.getFullYear() &&
+        taskDate.getMonth() === date.getMonth() &&
+        taskDate.getDate() === date.getDate() &&
+        taskDate.getHours() === date.getHours()
+      );
+    }));
   };
 
   // 週表示を修正
