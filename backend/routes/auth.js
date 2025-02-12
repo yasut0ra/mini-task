@@ -8,9 +8,9 @@ const router = express.Router();
 // ユーザー登録
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, name } = req.body;
+    const { username, email, password } = req.body;
     
-    if (!email || !password || !name) {
+    if (!email || !password || !username) {
       return res.status(400).json({ message: '必須項目が入力されていません' });
     }
 
@@ -20,7 +20,7 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'このメールアドレスは既に登録されています' });
     }
 
-    const user = new User({ email, password, name });
+    const user = new User({ email, password, username });
     
     // バリデーションエラーのチェック
     const validationError = user.validateSync();
@@ -45,7 +45,7 @@ router.post('/register', async (req, res) => {
       user: {
         id: user._id,
         email: user.email,
-        name: user.name
+        username: user.username
       }
     });
   } catch (error) {
@@ -77,14 +77,14 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     
-    // ユーザーの検索
-    const user = await User.findOne({ email });
+    // ユーザーの検索（パスワードフィールドを含める）
+    const user = await User.findOne({ email }).select('+password');
     if (!user) {
       return res.status(401).json({ message: 'メールアドレスまたはパスワードが正しくありません' });
     }
 
     // パスワードの検証
-    const isMatch = await user.comparePassword(password);
+    const isMatch = await user.matchPassword(password);
     if (!isMatch) {
       return res.status(401).json({ message: 'メールアドレスまたはパスワードが正しくありません' });
     }
@@ -101,26 +101,34 @@ router.post('/login', async (req, res) => {
       user: {
         id: user._id,
         email: user.email,
-        name: user.name
+        username: user.username
       }
     });
   } catch (error) {
-    res.status(400).json({ message: 'ログインに失敗しました' });
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'ログインに失敗しました' });
   }
 });
 
 // ユーザー情報の取得
 router.get('/me', auth, async (req, res) => {
   try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'ユーザーが見つかりません' });
+    }
+
     res.json({
       user: {
-        id: req.user._id,
-        email: req.user.email,
-        name: req.user.name
+        id: user._id,
+        email: user.email,
+        username: user.username,
+        status: user.status
       }
     });
   } catch (error) {
-    res.status(400).json({ message: 'ユーザー情報の取得に失敗しました' });
+    console.error('Get user info error:', error);
+    res.status(500).json({ message: 'ユーザー情報の取得に失敗しました' });
   }
 });
 
