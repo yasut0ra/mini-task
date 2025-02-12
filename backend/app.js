@@ -11,7 +11,26 @@ const app = express();
 
 // CORS設定
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: function (origin, callback) {
+    // 許可するオリジンのリスト
+    const allowedOrigins = [
+      'http://localhost:5173',           // 開発環境
+      'http://localhost:3000',           // 開発環境の代替ポート
+      'https://mini-task-puce.vercel.app', // Vercel本番環境
+      /^https:\/\/mini-task-.*\.vercel\.app$/ // Vercelプレビュー環境
+    ];
+
+    // オリジンがnull（同一オリジン）の場合や、許可リストに含まれる場合は許可
+    if (!origin || allowedOrigins.some(allowed => 
+      typeof allowed === 'string' 
+        ? allowed === origin 
+        : allowed.test(origin)
+    )) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS not allowed'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']

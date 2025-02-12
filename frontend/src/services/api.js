@@ -1,7 +1,10 @@
 import axios from 'axios';
 import { store } from '../store/index.jsx';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// 動的にAPIのベースURLを設定
+const API_BASE_URL = import.meta.env.PROD 
+  ? `${window.location.origin}/api`  // 本番環境では現在のオリジンを使用
+  : 'http://localhost:5000/api';     // 開発環境ではローカルホストを使用
 
 // APIインスタンスの作成
 const api = axios.create({
