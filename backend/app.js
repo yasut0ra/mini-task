@@ -11,32 +11,10 @@ const app = express();
 
 // CORS設定
 const corsOptions = {
-  origin: function (origin, callback) {
-    // 開発環境やテスト時にはoriginがnullになることがある
-    if (!origin) {
-      return callback(null, true);
-    }
-
-    console.log('Request origin:', origin); // デバッグ用
-
-    // Vercelドメインかローカルホストからのリクエストを許可
-    if (
-      // Vercelの様々なURLパターンに対応
-      origin.match(/^https:\/\/mini-task.*\.vercel\.app$/) || // プロジェクト名を含むパターン
-      origin.match(/^https:\/\/[a-zA-Z0-9-]+-[a-zA-Z0-9-]+-yasut0ras-projects\.vercel\.app$/) || // プレビューデプロイのパターン
-      origin.match(/^http:\/\/localhost:[0-9]+$/) // ローカルホスト（任意のポート）
-    ) {
-      callback(null, true);
-    } else {
-      console.log('CORS blocked for origin:', origin); // デバッグ用
-      callback(new Error('CORS not allowed'));
-    }
-  },
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  exposedHeaders: ['Content-Length', 'X-Requested-With'],
-  maxAge: 86400 // プリフライトリクエストのキャッシュ時間（24時間）
+  allowedHeaders: ['Content-Type', 'Authorization']
 };
 
 app.use(cors(corsOptions));
