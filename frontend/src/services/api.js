@@ -3,8 +3,8 @@ import { store } from '../store/index.jsx';
 
 // 動的にAPIのベースURLを設定
 const API_BASE_URL = import.meta.env.PROD 
-  ? `${window.location.origin}/api`  // 本番環境・プレビュー環境では現在のオリジンを使用
-  : 'http://localhost:5000/api';     // 開発環境ではローカルホストを使用
+  ? 'https://mini-task-puce.vercel.app/api'  // 本番環境のURL
+  : 'http://localhost:5000/api';     // 開発環境のURL
 
 // APIインスタンスの作成
 const api = axios.create({
