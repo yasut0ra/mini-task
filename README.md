@@ -1,8 +1,8 @@
 # MiniTask
 
 モダンなタスク管理アプリケーション。React、Node.js、MongoDB を使用して構築されています。
-URL：mini-task-puce.vercel.app
-完成イメージ：https://lambent-lolly-5e5cdb.netlify.app
+- URL：mini-task-puce.vercel.app
+- 完成イメージ：https://lambent-lolly-5e5cdb.netlify.app
 
 ## 主な機能
 
