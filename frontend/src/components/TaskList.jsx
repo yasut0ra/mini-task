@@ -10,8 +10,10 @@ import {
   Search,
   Filter,
   ExternalLink,
-  ArrowUpDown
+  Clock
+
 } from 'lucide-react';
+import { statusCategories } from '../utils/constants';
 import TaskDetail from './TaskDetail';
 import { TaskListSkeleton } from './ui/Loading';
 import { filterTasks, getUniqueCategories } from '../utils/filters';
@@ -41,8 +43,9 @@ const getCategoryBadgeColor = (category) => {
 function TaskList({ tasks, onAddTask, onToggleTask, onDeleteTask, onUpdateTask, isLoading, isInitialLoading }) {
   const [newTask, setNewTask] = useState('');
   const [dueDate, setDueDate] = useState('');
+  const [dueTime, setDueTime] = useState('');
   const [priority, setPriority] = useState('medium');
-  const [category, setCategory] = useState('');
+  const [category, setCategory] = useState('intelligence');
   const [filters, setFilters] = useState({
     status: 'all',
     priority: 'all',
@@ -67,13 +70,15 @@ function TaskList({ tasks, onAddTask, onToggleTask, onDeleteTask, onUpdateTask, 
         title: newTask.trim(),
         completed: false,
         dueDate,
+        dueTime,
         priority,
-        category: category.trim() || undefined,
+        category,
       });
       setNewTask('');
       setDueDate('');
+      setDueTime('');
       setPriority('medium');
-      setCategory('');
+      setCategory('intelligence');
       setShowAddForm(false);
     }
   };
@@ -172,9 +177,9 @@ function TaskList({ tasks, onAddTask, onToggleTask, onDeleteTask, onUpdateTask, 
                 className="input"
               />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">期限</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">期限日</label>
                 <div className="relative">
                   <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
@@ -185,6 +190,20 @@ function TaskList({ tasks, onAddTask, onToggleTask, onDeleteTask, onUpdateTask, 
                   />
                 </div>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">期限時間</label>
+                <div className="relative">
+                  <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="time"
+                    value={dueTime}
+                    onChange={(e) => setDueTime(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 rounded-xl border-0 bg-gray-50 shadow-inner focus:ring-2 focus:ring-indigo-500 transition-all duration-200"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">優先度</label>
                 <select
@@ -200,14 +219,17 @@ function TaskList({ tasks, onAddTask, onToggleTask, onDeleteTask, onUpdateTask, 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">カテゴリー</label>
                 <div className="relative">
-                  <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="text"
+                  <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    placeholder="カテゴリーを入力..."
-                    className="w-full pl-10 pr-4 py-2 rounded-xl border-0 bg-gray-50 shadow-inner focus:ring-2 focus:ring-indigo-500 transition-all duration-200"
-                  />
+                    className="w-full px-4 py-2 rounded-xl border-0 bg-gray-50 shadow-inner focus:ring-2 focus:ring-indigo-500 transition-all duration-200"
+                  >
+                    {categories.map(cat => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>

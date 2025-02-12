@@ -1,25 +1,45 @@
 import axios from 'axios';
 import { store } from '../store/index.jsx';
 
-const API_URL = import.meta.env.VITE_API_URL;
+// 動的にAPIのベースURLを設定
+const API_BASE_URL = import.meta.env.PROD 
+  ? `${window.location.origin}/api`  // 本番環境・プレビュー環境では現在のオリジンを使用
+  : 'http://localhost:5000/api';     // 開発環境ではローカルホストを使用
 
-// Axios インスタンスの作成
+// APIインスタンスの作成
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: API_BASE_URL,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
-  },
-  withCredentials: true
+  }
 });
 
-// リクエストインターセプターを追加
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+// リクエストインターセプター
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
-  return config;
-});
+);
+
+// レスポンスインターセプター
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
 
 // エラーハンドリング用のヘルパー関数
 const handleError = (error) => {
@@ -48,100 +68,91 @@ const handleError = (error) => {
   throw new Error(message);
 };
 
-// タスク関連の API 関数
+// タスク関連のAPI
 export const taskApi = {
   // タスク一覧の取得
-  async fetchTasks() {
-    try {
-      const response = await api.get('/tasks');
-      return response.data;
-    } catch (error) {
-      handleError(error);
-    }
+  fetchTasks: async () => {
+    const response = await api.get('/tasks');
+    return response.data;
   },
 
-  // タスクの追加
-  async createTask(taskData) {
-    try {
-      const response = await api.post('/tasks', taskData);
-      return response.data;
-    } catch (error) {
-      handleError(error);
-    }
+  // タスクの作成
+  createTask: async (taskData) => {
+    const response = await api.post('/tasks', taskData);
+    return response.data;
   },
 
   // タスクの更新
-  async updateTask(id, taskData) {
-    try {
-      const response = await api.put(`/tasks/${id}`, taskData);
-      return response.data;
-    } catch (error) {
-      handleError(error);
-    }
+  updateTask: async (id, taskData) => {
+    const response = await api.put(`/tasks/${id}`, taskData);
+    return response.data;
   },
 
-  // タスクの部分更新（完了状態の切り替えなど）
-  async toggleTaskStatus(id, completed) {
-    try {
-      const response = await api.patch(`/tasks/${id}`, { completed });
-      return response.data;
-    } catch (error) {
-      handleError(error);
-    }
+  // タスクの完了状態の切り替え
+  toggleTaskStatus: async (id) => {
+    const response = await api.patch(`/tasks/${id}/toggle`);
+    return response.data;
   },
 
   // タスクの削除
-  async deleteTask(id) {
-    try {
-      await api.delete(`/tasks/${id}`);
-      return true;
-    } catch (error) {
-      handleError(error);
-    }
-  },
+  deleteTask: async (id) => {
+    const response = await api.delete(`/tasks/${id}`);
+    return response.data;
+  }
 };
 
-// コメント関連のAPI関数
+// 認証関連のAPI
+export const authApi = {
+  // ログイン
+  login: async (credentials) => {
+    const response = await api.post('/auth/login', credentials);
+    return response.data;
+  },
+
+  // 新規登録
+  register: async (userData) => {
+    const response = await api.post('/auth/register', userData);
+    return response.data;
+  },
+
+  // ログアウト
+  logout: async () => {
+    const response = await api.post('/auth/logout');
+    return response.data;
+  },
+
+  // ユーザー情報の取得
+  getProfile: async () => {
+    const response = await api.get('/auth/profile');
+    return response.data;
+  }
+};
+
+// コメント関連のAPI
 export const commentApi = {
-  // タスクのコメント一覧を取得
-  async fetchComments(taskId) {
-    try {
-      const response = await api.get(`/comments/task/${taskId}`);
-      return response.data;
-    } catch (error) {
-      handleError(error);
-    }
+  // コメント一覧の取得
+  fetchComments: async (taskId) => {
+    const response = await api.get(`/comments/${taskId}`);
+    return response.data;
   },
 
-  // コメントを追加
-  async createComment(taskId, text) {
-    try {
-      const response = await api.post('/comments', { taskId, text });
-      return response.data;
-    } catch (error) {
-      handleError(error);
-    }
+  // コメントの作成
+  createComment: async (taskId, text) => {
+    const response = await api.post(`/comments/${taskId}`, { text });
+    return response.data;
   },
 
-  // コメントを更新
-  async updateComment(id, text) {
-    try {
-      const response = await api.put(`/comments/${id}`, { text });
-      return response.data;
-    } catch (error) {
-      handleError(error);
-    }
+  // コメントの更新
+  updateComment: async (id, text) => {
+    const response = await api.put(`/comments/${id}`, { text });
+    return response.data;
   },
 
-  // コメントを削除
-  async deleteComment(id) {
-    try {
-      await api.delete(`/comments/${id}`);
-      return true;
-    } catch (error) {
-      handleError(error);
-    }
-  },
+  // コメントの削除
+  deleteComment: async (id) => {
+    const response = await api.delete(`/comments/${id}`);
+    return response.data;
+  }
 };
 
 // 分析関連のAPI関数

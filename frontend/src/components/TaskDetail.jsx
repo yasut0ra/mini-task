@@ -11,6 +11,7 @@ import {
   X,
   Edit
 } from 'lucide-react';
+import { statusCategories, getCategoryById } from '../utils/constants';
 import { validateTask } from '../utils/validation';
 import { LoadingSpinner, TaskDetailSkeleton } from './ui/Loading';
 import { TaskComments } from './TaskComments';
@@ -173,21 +174,41 @@ function TaskDetail({ task, onClose, onUpdate, onDelete, isLoading }) {
                       <Calendar className="w-5 h-5 text-indigo-600" />
                     </div>
                     {isEditing ? (
-                      <input
-                        type="date"
-                        value={editedTask.dueDate || ''}
-                        onChange={(e) => handleInputChange('dueDate', e.target.value)}
-                        className={`flex-1 px-4 py-2 rounded-xl border-0 bg-gray-50 shadow-inner focus:ring-2 ${
-                          errors.dueDate ? 'ring-2 ring-red-500' : 'focus:ring-indigo-500'
-                        }`}
-                      />
+                      <div className="flex-1 grid grid-cols-2 gap-2">
+                        <input
+                          type="date"
+                          value={editedTask.dueDate || ''}
+                          onChange={(e) => handleInputChange('dueDate', e.target.value)}
+                          className={`px-4 py-2 rounded-xl border-0 bg-gray-50 shadow-inner focus:ring-2 ${
+                            errors.dueDate ? 'ring-2 ring-red-500' : 'focus:ring-indigo-500'
+                          }`}
+                        />
+                        <input
+                          type="time"
+                          value={editedTask.dueTime || ''}
+                          onChange={(e) => handleInputChange('dueTime', e.target.value)}
+                          className={`px-4 py-2 rounded-xl border-0 bg-gray-50 shadow-inner focus:ring-2 ${
+                            errors.dueTime ? 'ring-2 ring-red-500' : 'focus:ring-indigo-500'
+                          }`}
+                        />
+                      </div>
                     ) : (
                       <span className="text-gray-600">
-                        {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : '期限なし'}
+                        {task.dueDate ? (
+                          <>
+                            {new Date(task.dueDate).toLocaleDateString()}
+                            {task.dueTime && ` ${task.dueTime}`}
+                          </>
+                        ) : (
+                          '期限なし'
+                        )}
                       </span>
                     )}
                     {errors.dueDate && (
                       <p className="mt-1 text-sm text-red-500">{errors.dueDate}</p>
+                    )}
+                    {errors.dueTime && (
+                      <p className="mt-1 text-sm text-red-500">{errors.dueTime}</p>
                     )}
                   </div>
 
@@ -219,16 +240,20 @@ function TaskDetail({ task, onClose, onUpdate, onDelete, isLoading }) {
                       <Tag className="w-5 h-5 text-indigo-600" />
                     </div>
                     {isEditing ? (
-                      <input
-                        type="text"
-                        value={editedTask.category || ''}
-                        onChange={(e) => setEditedTask({ ...editedTask, category: e.target.value })}
-                        placeholder="カテゴリーを入力..."
+                      <select
+                        value={editedTask.category}
+                        onChange={(e) => handleInputChange('category', e.target.value)}
                         className="flex-1 px-4 py-2 rounded-xl border-0 bg-gray-50 shadow-inner focus:ring-2 focus:ring-indigo-500"
-                      />
+                      >
+                        {statusCategories.map(cat => (
+                          <option key={cat.id} value={cat.id}>
+                            {cat.label}
+                          </option>
+                        ))}
+                      </select>
                     ) : (
                       <span className="text-gray-600">
-                        {task.category || 'カテゴリーなし'}
+                        {task.category ? getCategoryById(task.category)?.label : 'カテゴリーなし'}
                       </span>
                     )}
                   </div>

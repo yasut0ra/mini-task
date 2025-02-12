@@ -18,6 +18,13 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
     trim: true
+  },
+  statusPoints: {
+    intelligence: { type: Number, default: 0 },
+    emotional: { type: Number, default: 0 },
+    health: { type: Number, default: 0 },
+    social: { type: Number, default: 0 },
+    wealth: { type: Number, default: 0 }
   }
 }, {
   timestamps: true
@@ -35,6 +42,12 @@ userSchema.pre('save', async function(next) {
 // パスワード検証メソッド
 userSchema.methods.comparePassword = async function(candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
+};
+
+// ステータスポイント加算メソッド
+userSchema.methods.addStatusPoints = async function(category, points) {
+  this.statusPoints[category] += points;
+  return this.save();
 };
 
 const User = mongoose.model('User', userSchema);

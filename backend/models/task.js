@@ -20,6 +20,15 @@ const taskSchema = new mongoose.Schema({
       message: '有効な日付を入力してください'
     }
   },
+  dueTime: {
+    type: String,
+    validate: {
+      validator: function(v) {
+        return !v || /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(v);
+      },
+      message: '有効な時間を入力してください（HH:MM形式）'
+    }
+  },
   priority: {
     type: String,
     enum: {
@@ -30,8 +39,18 @@ const taskSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    trim: true,
-    maxlength: [20, 'カテゴリーは20文字以内で入力してください']
+    enum: {
+      values: ['intelligence', 'emotional', 'health', 'social', 'wealth'],
+      message: 'カテゴリーは intelligence, emotional, health, social, wealth のいずれかを選択してください'
+    },
+    required: [true, 'カテゴリーは必須です']
+  },
+  statusPoints: {
+    intelligence: { type: Number, default: 1 },
+    emotional: { type: Number, default: 1 },
+    health: { type: Number, default: 1 },
+    social: { type: Number, default: 1 },
+    wealth: { type: Number, default: 1 }
   },
   user: {
     type: mongoose.Schema.Types.ObjectId,
