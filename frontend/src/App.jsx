@@ -7,7 +7,8 @@ import {
   Settings as SettingsIcon,
   Menu,
   X,
-  LogOut
+  LogOut,
+  Trophy
 } from 'lucide-react';
 import { taskApi } from './services/api';
 import TaskList from './components/TaskList';
@@ -21,6 +22,7 @@ import { useStore } from './store/index.jsx';
 import { useToast } from './contexts/ToastContext';
 import { useAuth } from './contexts/AuthContext';
 import { ErrorMessage } from './components/ui/ErrorMessage';
+import StatusDisplay from './components/StatusDisplay';
 
 function App() {
   const [tasks, setTasks] = useState([]);
@@ -121,6 +123,7 @@ function App() {
 
   const navigation = [
     { name: 'タスク', icon: ListTodo, view: 'tasks' },
+    { name: 'ステータス', icon: Trophy, view: 'status' },
     { name: '分析', icon: BarChart2, view: 'analytics' },
     { name: 'カレンダー', icon: CalendarIcon, view: 'calendar' },
     { name: '設定', icon: SettingsIcon, view: 'settings' },
@@ -216,6 +219,9 @@ function App() {
                 isLoading={isLoading}
                 isInitialLoading={isInitialLoading}
               />
+            )}
+            {currentView === 'status' && (
+              <StatusDisplay />
             )}
             {currentView === 'analytics' && (
               <Analytics tasks={tasks} />
